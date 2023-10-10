@@ -1,0 +1,8 @@
+__pycache__
+.vscode
+data
+logdir
+saved
+*.DS_Store
+*.pyc
+report
