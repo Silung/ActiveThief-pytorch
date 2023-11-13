@@ -13,7 +13,9 @@ from utils.class_loader import *
 
 
 def train(args):
-    logdir = os.path.join(args.path_prefix, 'logdir', args.source_model, args.true_dataset, 'true')
+    logdir = os.path.join(args.path_prefix, 'logdir', 
+                          'source_model_', args.source_model, 
+                          'true_dataset', args.true_dataset, 'true')
     shutil.rmtree(logdir, ignore_errors=True, onerror=None)
     writer1 = SummaryWriter(logdir)
 
@@ -23,16 +25,24 @@ def train(args):
 
     train_dataset = dataset(mode='train')
     val_dataset = dataset(mode='val')
-    sample_shape = train_dataset.get_sample_shape()
-    width, height, channels = sample_shape
-
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
 
     num_classes = train_dataset.get_num_classes()
-
     source_model_type = load_model(args.source_model)
-    model = source_model_type(channels, num_classes, args.true_dataset)
+    
+    if args.true_dataset not in ['agnews', 'imdb']:
+        train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+        val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
+        
+        sample_shape = train_dataset.get_sample_shape()
+        width, height, channels = sample_shape
+        model = source_model_type(num_classes, args.true_dataset, channels=channels)
+    else:
+        train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=train_dataset.collate_batch)
+        val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=val_dataset.collate_batch)
+        
+        vocab_size = train_dataset.get_vocab_size()
+        model = source_model_type(num_classes, args.true_dataset, vocab_size=vocab_size)
+        
 
     model = model.to(args.device)
 
@@ -51,9 +61,14 @@ def train(args):
         train_dataloader = tqdm(train_dataloader)
         acc_list = []
         loss_list = []
-        for input, label in train_dataloader:
+        for items in train_dataloader:
             optimizer.zero_grad()
-            output = model(input.to(args.device))
+            if args.true_dataset in ['agnews', 'imdb']:
+                input, label, offset = items
+                output = model(input.to(args.device), offset.to(args.device))
+            else:
+                input, label = items
+                output = model(input.to(args.device))
             loss = loss_func(output, label.to(args.device).long())
             loss.backward()
             optimizer.step()
@@ -71,7 +86,7 @@ def train(args):
         train_acc = np.array(acc_list).mean()
         print('Epoch: {}\t Train Loss: {:.6}\t Train Acc: {:.6}\t'.format(epoch, train_loss, train_acc))
         writer1.add_scalar('train/loss', train_loss, epoch)
-        writer1.add_scalar('train/a cc', train_acc, epoch)
+        writer1.add_scalar('train/acc', train_acc, epoch)
 
         save_dir = os.path.join(args.path_prefix, 'saved', args.source_model, args.true_dataset, 'true')
         if not os.path.exists(save_dir):
@@ -88,8 +103,13 @@ def eval(args, model, val_dataloader):
 
     acc_list = []
     val_dataloader = tqdm(val_dataloader)
-    for input, label in val_dataloader:
-        output = model(input.to(args.device))
+    for items in val_dataloader:
+        if args.true_dataset in ['agnews', 'imdb']:
+            input, label, offset = items
+            output = model(input.to(args.device), offset.to(args.device))
+        else:
+            input, label = items
+            output = model(input.to(args.device))
         pred = torch.max(output, dim=-1, keepdim=False)[-1]
         
         acc = pred.cpu().eq(label.data).numpy().mean()
@@ -106,23 +126,33 @@ def true_model_test(args):
 
     dataset = load_dataset(args.true_dataset) 
     test_dataset = dataset(mode='test')
-    sample_shape = test_dataset.get_sample_shape()
-    width, height, channels = sample_shape
-
-    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
-
+    
     num_classes = test_dataset.get_num_classes()
-
     source_model_type = load_model(args.source_model)
-    model = source_model_type(channels, num_classes, args.true_dataset)
+    
+    if args.true_dataset not in ['agnews', 'imdb']:
+        sample_shape = test_dataset.get_sample_shape()
+        width, height, channels = sample_shape
+        test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+        model = source_model_type(num_classes, args.true_dataset, channels)
+    else:
+        test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=test_dataset.collate_batch)
+        vocab_size = test_dataset.get_vocab_size()
+        model = source_model_type(num_classes, args.true_dataset, vocab_size=vocab_size)
+        
     model.load_state_dict(torch.load(save_dir))
     model = model.to(args.device)
     model.eval()
 
     acc_list = []
     test_dataloader = tqdm(test_dataloader)
-    for input, label in test_dataloader:
-        output = model(input.to(args.device))
+    for items in test_dataloader:
+        if args.true_dataset in ['agnews', 'imdb']:
+            input, label, offset = items
+            output = model(input.to(args.device), offset.to(args.device))
+        else:
+            input, label = items
+            output = model(input.to(args.device))
         pred = torch.max(output, dim=-1, keepdim=False)[-1]
         
         acc = pred.cpu().eq(label.data).numpy().mean()

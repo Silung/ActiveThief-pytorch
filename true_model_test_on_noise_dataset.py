@@ -1,24 +1,22 @@
 import os
 import shutil
 import numpy as np
-from tqdm import tqdm, trange
+from tqdm import tqdm
 import torch
 from torch import nn
-from torch import optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter 
 
 from utils.class_loader import *
-from dataset.uniform_dataset import UniformDataset
-from dataset.imagenet_dataset import ImagenetDataset
+import matplotlib.pyplot as plt
 
 
 def true_model_test_on_noise_dataset(args):
     # dataset
     noise_dataset = load_noise_dataset(args.noise_dataset)
 
-    val_noise_dataset = noise_dataset(mode='val', normalize_channels=True, val_frac=1)
+    val_noise_dataset = noise_dataset(mode='val', val_frac=1, num_fig=args.num_fig)
     sample_shape = val_noise_dataset.get_sample_shape()
     width, height, channels = sample_shape
     num_classes = val_noise_dataset.get_num_classes()
@@ -48,7 +46,9 @@ def true_model_test_on_noise_dataset(args):
     loss_list = []
     acc_list = []
     loss_func = nn.CrossEntropyLoss()
+    
     with torch.no_grad():
+        cc = 0
         for trX, label, idx, p in val_noise_dataloader:
             trY = true_model(trX.to(args.device))
             label = label.to(args.device).to(torch.int64)
@@ -56,6 +56,17 @@ def true_model_test_on_noise_dataset(args):
             
             pred = torch.max(trY, dim=-1, keepdim=False)[-1]
             acc = pred.eq(label).cpu().numpy().mean()
+            
+            for index in range(len(trX)):
+                # 将 Tensor 转换为 NumPy 数组
+                image_array = trX[index].squeeze().numpy()  # 使用squeeze()去掉单维度
+
+                # 使用Matplotlib来显示黑白图像
+                plt.imshow(image_array, cmap='gray')
+                plt.title(f"True label: {label[index]}; Predict label: {pred[index]}") 
+                plt.axis('off')  # 去掉坐标轴
+                plt.savefig(f'data/mnist_dc/{args.num_fig}figs/{cc}.png')
+                cc += 1
         
             loss_list.append(loss.item())
             acc_list.append(acc)
@@ -63,4 +74,4 @@ def true_model_test_on_noise_dataset(args):
             
     val_loss = np.array(loss_list).mean()
     val_acc = np.array(acc_list).mean()
-    print(f'True model\'s agreement on ture dataset and noise dataset : {val_acc}')
+    print(f'True model\'s agreement on true and noise dataset : {val_acc}')

@@ -30,7 +30,7 @@ class ConvBlock(nn.Module):
         return x
 
 class CNN(nn.Module):
-    def __init__(self, in_channels, num_classes, dataset_name, num_filters=[32, 64, 128], fc_layers=[], convs_in_block=2, drop_prob=0.1):
+    def __init__(self, num_classes, dataset_name, in_channels=None, num_filters=[32, 64, 128], fc_layers=[], convs_in_block=2, drop_prob=0.1):
         super(CNN, self).__init__()
 
         self.num_filters      = num_filters
@@ -44,10 +44,14 @@ class CNN(nn.Module):
             layers.append(ConvBlock(ex_out_channels, out_channels, convs_in_block))
             ex_out_channels = out_channels
         
-        if dataset_name == 'mnist':
+        if 'mnist' in dataset_name:
             ex_num_neurons = out_channels * 9
-        elif dataset_name == 'cifar':
-            ex_num_neurons = out_channels * 9
+        elif 'cifar' in dataset_name:
+            ex_num_neurons = out_channels * 16
+        elif 'imagenet' in dataset_name:
+	        ex_num_neurons = out_channels * 64
+        elif 'gtsrb' in dataset_name:
+	        ex_num_neurons = out_channels * 16
         else:
             raise NotImplementedError
             

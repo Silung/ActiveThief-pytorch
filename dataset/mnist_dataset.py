@@ -1,6 +1,8 @@
+import torch
 import numpy as np, os, struct
 from dataset.base_dataset import BaseDataset
 from os.path import expanduser, join
+from dataset.markable_dataset import MarkableDataset
 
 class MnistDataset(BaseDataset):
     def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None):
@@ -20,6 +22,8 @@ class MnistDataset(BaseDataset):
             normalize_channels=normalize_channels,
             resize=resize
         )
+        
+        self.aux_data = {}
         
     def is_multilabel(self):
         return False
@@ -43,7 +47,7 @@ class MnistDataset(BaseDataset):
             self.data = np.fromfile(fimg, dtype=np.uint8).reshape(len(self.labels), rows, cols, 1)
 
         # Perform splitting
-        if val_frac is not None:
+        if mode != 'test':
             self.partition_validation_set(mode, val_frac)
             
         self.labels = np.squeeze(self.labels)
@@ -51,61 +55,61 @@ class MnistDataset(BaseDataset):
     def get_num_classes(self):
         return 10
     
-class MnistSmallDataset(MnistDataset):
+    def update(self, i, aux_data=None):
+        self.aux_data[i] = aux_data
+    
+class MnistSmallDataset(MarkableDataset, MnistDataset):
     def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None):
-        super().__init__(normalize, mode, val_frac, normalize_channels, path, resize)
+        MnistDataset.__init__(self, normalize, mode, val_frac, normalize_channels, path, resize)
         
         # Shrink Data
-        reduced_size = int(len(self.data) * 0.1)
-        self.data = self.data[:reduced_size]
-        self.labels = self.labels[:reduced_size]
+        if mode == 'train':
+            reduced_size = int(len(self.data) * 0.1)
+            self.data = self.data[:reduced_size]
+            self.labels = self.labels[:reduced_size]
+            
+        MarkableDataset.__init__(self)
         
-        self.state = 'unmark'
         
-        # Initialize hashsets and hashmap
-        self.marked = []
-        self.marking = []
-        self.unmark = list(range(self.data.shape[0]))
+class MnistDistillationDataset(MarkableDataset, BaseDataset):
+    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None, num_fig=10):
+        self.num_fig = num_fig
+        if mode == 'val':
+            assert val_frac is not None
+
+        BaseDataset.__init__(self,
+            normalize=normalize,
+            mode=mode,
+            val_frac=val_frac,
+            normalize_channels=normalize_channels,
+            resize=resize
+        )
         
-        self.aux_data = {}
-        self._marked_counter = 0
-        self._unmark_counter = 0
+        MarkableDataset.__init__(self)
         
-    def set_state(self, state):
-        self.state = state
+    def is_multilabel(self):
+        return False
+
+    def load_data(self, mode, val_frac):
+        dist_data = torch.load(f'data/mnist_dc/res_DC_MNIST_ConvNet_{self.num_fig}ipc.pt')['data'][0]
+
+        # self.data = dist_data[0].permute(0,2,3,1)
+        self.data = dist_data[0].permute(0,2,3,1)
+        self.labels = dist_data[1]
+                    
+        shuffled_indices = torch.randperm(self.data.size(0))
+        self.data = self.data[shuffled_indices].numpy()
+        self.labels = self.labels[shuffled_indices].numpy()
         
-    def __getitem__(self, index):
-        if self.state == 'marked':
-            idx = self.marked[index]
-        elif self.state == 'marking':
-            idx = self.marking[index]
-        else:
-            idx = self.unmark[index]
-        x = self.data[idx]
-        y = self.labels[idx]
+        # Perform splitting
+        if val_frac is not None:
+            self.partition_validation_set(mode, val_frac)
         
-        if idx in self.aux_data:
-            aux = self.aux_data[idx]
-        else:
-            aux = 0
-        return x, y, idx, aux
+    def get_num_classes(self):
+        return 10
         
-    def __len__(self):
-        if self.state == 'marked':
-            return len(self.marked)
-        elif self.state == 'marking':
-            return len(self.marking)
-        else:
-            return len(self.unmark)
-        
-    def mark(self, i):
-        assert i not in self.marked
-        
-        if i not in self.marked:
-            self.unmark.remove(i)
-            self.marking.append(i)
-        
-    def update(self, i, aux_data=None):
-        self.marking.remove(i)
-        self.marked.append(i)
-        self.aux_data[i] = aux_data
+
+class MnistMarkableDataset(MarkableDataset, MnistDataset):
+    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None):
+        MnistDataset.__init__(self, normalize=normalize, mode=mode, val_frac=val_frac, normalize_channels=normalize_channels, path=path, resize=resize)
+        MarkableDataset.__init__(self)

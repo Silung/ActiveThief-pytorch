@@ -6,8 +6,8 @@ def unpickle(file):
         dict = pickle.load(fo)
     return dict
 
-filenames = [('train_data_batch_%d' % (i+1)) for i in range(1)] + ['val_data']
-filenames = [os.path.join('dataset_dir', 'Imagenet64', f) for f in filenames]
+filenames = [('train_data_batch_%d' % (i+1)) for i in range(10)] + ['val_data']
+filenames = [os.path.join('data', 'Imagenet64', f) for f in filenames]
 
 for filename in filenames:
 	print('%s...' % filename)

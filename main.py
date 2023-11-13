@@ -33,7 +33,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=150)
     parser.add_argument('--device', type=str, choices=['cuda', 'cpu'], default='cuda')
     parser.add_argument('--lr', type=float, default=1e-3)
-    parser.add_argument('--num_epoch', type=int, default=100)
+    parser.add_argument('--num_epoch', type=int, default=1000)
     parser.add_argument('--copy_num_epoch', type=int, default=100)
 
     parser.add_argument('--iterative', action='store_true')
@@ -50,6 +50,7 @@ def main():
     parser.add_argument('--api_retval', choices=['onehot', 'softmax'], type=str, default='onehot')
     
     parser.add_argument('--path_prefix', type=str, default='')
+    parser.add_argument('--num_fig', type=int, default=10)
 
     args = parser.parse_args()
 
@@ -85,10 +86,9 @@ def main():
         t = time.time()
         mea(args)
         print("Copying source model completed {} min".format(round((time.time() - t)/60, 2)))
-        copy_model_test(args)
 
     if args.true_model_test_on_noise_dataset:
-        t = time.time()        
+        t = time.time()
         true_model_test_on_noise_dataset(args)
         print("True model test on noise dataset completed {} min".format(round((time.time() - t)/60, 2)))
 
