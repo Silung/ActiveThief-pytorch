@@ -30,11 +30,14 @@ def main():
     parser.add_argument('--noise_dataset', type=str, default='imagenet')
     parser.add_argument('--num_to_keep', type=int, default=None)
     parser.add_argument('--seed', type=int, default=1960)
-    parser.add_argument('--batch_size', type=int, default=150)
+    parser.add_argument('--batch_size', type=int, default=50)
     parser.add_argument('--device', type=str, choices=['cuda', 'cpu'], default='cuda')
-    parser.add_argument('--lr', type=float, default=1e-3)
+    parser.add_argument('--lr', type=float, default=1e-5)
     parser.add_argument('--num_epoch', type=int, default=1000)
-    parser.add_argument('--copy_num_epoch', type=int, default=100)
+    parser.add_argument('--train_dropout', type=float, default=0.1)
+    parser.add_argument('--train_l2', type=float, default=0.001)
+    parser.add_argument('--mea_dropout', type=float, default=0.1)
+    parser.add_argument('--mea_l2', type=float, default=0.001)
 
     parser.add_argument('--iterative', action='store_true')
     parser.add_argument('--initial_size', type=int, default=200)
@@ -45,7 +48,7 @@ def main():
     parser.add_argument('--copy_source_model', action='store_true')
     parser.add_argument('--true_model_test_on_noise_dataset', action='store_true')
 
-    parser.add_argument('--sampling_method', type=str, choices=['random', 'uncertainty', 'kcenter', 'deepfool'], default='random')
+    parser.add_argument('--sampling_method', type=str, choices=['random', 'uncertainty', 'kcenter', 'deepfool', 'certainty'], default='random')
     parser.add_argument('--optimizer', type=str, default='adam')
     parser.add_argument('--api_retval', choices=['onehot', 'softmax'], type=str, default='onehot')
     
@@ -80,7 +83,7 @@ def main():
         t = time.time()
         train(args)
         print("Training source model completed {} min".format(round((time.time() - t)/60, 2)))
-        true_model_test(args)
+        # true_model_test(args)
 
     if args.copy_source_model:
         t = time.time()
@@ -95,3 +98,4 @@ def main():
 
 
 main()
+

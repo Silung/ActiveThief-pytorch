@@ -14,7 +14,6 @@ class GeneratedCifarDataset(BaseDataset):
             assert val_frac is not None
 
         if path is None:
-            home = expanduser("~")
             self.path = '/data/zsl/generative-models/figs_cifar'
         else:
             self.path = path
@@ -34,7 +33,7 @@ class GeneratedCifarDataset(BaseDataset):
     def is_multilabel(self):
         return False
 
-    def load_data(self, mode, val_frac):       
+    def load_data(self, mode, val_frac):
         # Initialize an empty NumPy array to store the images
         self.data = np.empty((self.num_images, 1024, 1024, 3), dtype=np.uint8)
         self.labels = np.empty((self.num_images, 1), dtype=np.uint8)
@@ -61,6 +60,63 @@ class GeneratedCifarDataset(BaseDataset):
     def update(self, i, aux_data=None):
         self.aux_data[i] = aux_data
         
+class GeneratedCifarFinetuneDataset(GeneratedCifarDataset):
+    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path='/data/zsl/generative-models/figs_cifar_finetune', resize=None):
+        self.num_images = 610*10
+        
+        if mode == 'val':
+            assert val_frac is not None
+
+        if path is None:
+            self.path = '/data/zsl/generative-models/figs_cifar'
+        else:
+            self.path = path
+        
+        super(GeneratedCifarDataset, self).__init__(
+            normalize=normalize,
+            mode=mode,
+            val_frac=val_frac,
+            normalize_channels=normalize_channels,
+            resize=resize
+        )
+        
+        self.aux_data = {}
+        
+        # assert self.num_images % self.get_num_classes() == 0
+        
+    def is_multilabel(self):
+        return False
+
+    def load_data(self, mode, val_frac):
+        # Initialize an empty NumPy array to store the images
+        self.data = np.empty((self.num_images, 1024, 1024, 3), dtype=np.uint8)
+        self.labels = np.empty((self.num_images, 1), dtype=np.uint8)
+
+        # Loop through each image number and load it as a grayscale image
+        num_cls = self.get_num_classes()
+        cc = 0
+        for cls_id in range(num_cls):
+            for i in range(self.num_images//num_cls):
+                image_path = os.path.join(self.path, f"{cls_id}_{i}.jpg")
+                # image = Image.open(image_path).convert("L")  # "L" mode converts to grayscale
+                image = Image.open(image_path)
+                image = np.array(image)
+
+                self.data[cc, :, :, :] = image
+                self.labels[cc, 0] = cls_id
+                cc += 1
+
+        # Perform splitting
+        if val_frac is not None:
+            self.partition_validation_set(mode, val_frac)
+            
+        self.labels = np.squeeze(self.labels)
+
+    def get_num_classes(self):
+        return 10
+    
+    def update(self, i, aux_data=None):
+        self.aux_data[i] = aux_data
 
 class GeneratedMnistDataset(BaseDataset):
     def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None):
@@ -191,6 +247,11 @@ class GeneratedImagenetDataset(BaseDataset):
 class GeneratedCifarMarkableDataset(MarkableDataset, GeneratedCifarDataset):
     def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None):
         GeneratedCifarDataset.__init__(self, normalize, mode, val_frac, normalize_channels, path, resize)
+        MarkableDataset.__init__(self)
+        
+class GeneratedCifarFinetuneMarkableDataset(MarkableDataset, GeneratedCifarFinetuneDataset):
+    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path='/data/zsl/generative-models/figs_cifar_finetune+empty_prompt', resize=None):
+        GeneratedCifarFinetuneDataset.__init__(self, normalize, mode, val_frac, normalize_channels, path, resize)
         MarkableDataset.__init__(self)
         
 class GeneratedImagenetMarkableDataset(MarkableDataset, GeneratedImagenetDataset):

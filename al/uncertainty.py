@@ -10,3 +10,13 @@ class UncertaintySelectionStrategy():
     def get_subset(self):
         entropies = np.array([entropy(yv) for yv in self.Y_vec])
         return np.array(self.Idx)[np.argsort(entropies*-1)[:self.size]]
+    
+class CertaintySelectionStrategy():
+    def __init__(self, size, Idx, Y_vec):
+        self.Y_vec = Y_vec
+        self.Idx = Idx
+        self.size = size
+        
+    def get_subset(self):
+        entropies = np.array([entropy(yv) for yv in self.Y_vec])
+        return np.array(self.Idx)[np.argsort(entropies)[:self.size]]

@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter 
 
 from utils.class_loader import *
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 def true_model_test_on_noise_dataset(args):
@@ -29,7 +29,10 @@ def true_model_test_on_noise_dataset(args):
     if not os.path.exists(true_model_dir):
         print('Train true model first!')
     source_model_type = load_model(args.source_model)
-    true_model = source_model_type(channels, num_classes, args.true_dataset)
+    if args.true_dataset == 'cifar':
+        true_model = source_model_type(num_classes, args.true_dataset, channels, drop_prob=0.2)
+    else:
+        true_model = source_model_type(channels, num_classes, args.true_dataset)
     true_model.load_state_dict(torch.load(os.path.join(true_model_dir, 'trained_model.pth')))
     true_model = true_model.to(args.device)
 

@@ -45,16 +45,19 @@ class ImagenetDataset(BaseDataset):
             assert np.abs(np.min(self.data) - 0.0) < 1e-1
             assert np.abs(np.max(self.data) - 1.0) < 1e-1
 
+        print(f'Imagenet {mode} dataset size {len(self.labels)}')
+
     def load_data(self, mode, val_frac):
+        # Our training and validation splits are of size 100K and 20K respectively. 
         xs = []
         ys = []
 
-        if mode in ['train']:
+        if mode in ['train', 'val']:
             # data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(1, 6)]
-            data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(1, 3)]
-        elif mode == 'val':
-            # data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(9, 10+1)]
-            data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(9,10)]
+            data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(1, 2)]
+        # elif mode == 'val':
+        #     # data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(9, 10+1)]
+        #     data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(9,10)]
         else:
             data_files = [os.path.join(self.path, 'val_data.json')]
 
@@ -89,8 +92,8 @@ class ImagenetDataset(BaseDataset):
             self.labels = np.concatenate(ys, axis=0)
 
         # Perform splitting
-        # if mode != 'test':
-        #     self.partition_validation_set(mode, val_frac)
+        if mode != 'test':
+            self.partition_validation_set(mode, val_frac)
 
     def get_num_classes(self):
         return 1000

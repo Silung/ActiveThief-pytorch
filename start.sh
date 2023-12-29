@@ -1,5 +1,5 @@
 # train true model
-python main.py --train_source_model
+python main.py --train_source_model --num_epoch 1000
 
 # onehot random
 python main.py --copy_source_model --num_epoch 1000 --noise_dataset imagenet --num_iter 20 -k 1000 --initial_size 1000 --api_retval onehot --sampling_method random

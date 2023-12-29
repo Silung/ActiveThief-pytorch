@@ -1,3 +1,4 @@
+import copy
 import torch
 import numpy as np
 
@@ -27,6 +28,7 @@ class EarlyStopping: # 这个是别人写的工具类，大家可以把它放到
         self.delta = delta
         self.path = path
         self.trace_func = trace_func
+        self.best_model_parms = None
 
     def __call__(self, val_loss, model):
 
@@ -34,6 +36,7 @@ class EarlyStopping: # 这个是别人写的工具类，大家可以把它放到
 
         if self.best_score is None:
             self.best_score = score
+            self.best_model_parms = model.state_dict()
             # self.save_checkpoint(val_loss, model)
         elif score < self.best_score + self.delta:
             self.counter += 1
@@ -43,6 +46,7 @@ class EarlyStopping: # 这个是别人写的工具类，大家可以把它放到
                 self.early_stop = True
         else:
             self.best_score = score
+            self.best_model_parms = model.state_dict()
             # self.save_checkpoint(val_loss, model)
             self.counter = 0
 

@@ -14,8 +14,10 @@ from utils.class_loader import *
 
 def train(args):
     logdir = os.path.join(args.path_prefix, 'logdir', 
-                          'source_model_', args.source_model, 
-                          'true_dataset', args.true_dataset, 'true')
+                          'sm_' + args.source_model, 
+                          'td_' + args.true_dataset, 
+                          't_drop_' + str(args.train_dropout),
+                          't_l2_' + str(args.train_l2),'true')
     shutil.rmtree(logdir, ignore_errors=True, onerror=None)
     writer1 = SummaryWriter(logdir)
 
@@ -35,7 +37,12 @@ def train(args):
         
         sample_shape = train_dataset.get_sample_shape()
         width, height, channels = sample_shape
-        model = source_model_type(num_classes, args.true_dataset, channels=channels)
+        if args.train_dropout is not None:
+            model = source_model_type(num_classes, args.true_dataset, channels, drop_prob=args.train_dropout)
+        elif args.true_dataset == 'cifar':
+            model = source_model_type(num_classes, args.true_dataset, channels, drop_prob=0.2)
+        else:
+            model = source_model_type(num_classes, args.true_dataset, channels)
     else:
         train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=train_dataset.collate_batch)
         val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=val_dataset.collate_batch)
@@ -43,13 +50,13 @@ def train(args):
         vocab_size = train_dataset.get_vocab_size()
         model = source_model_type(num_classes, args.true_dataset, vocab_size=vocab_size)
         
-
+    print(model)
     model = model.to(args.device)
 
     if args.optimizer == 'adagrad':
-        optimizer  = optim.Adagrad(model.parameters(), lr=args.lr)
+        optimizer  = optim.Adagrad(model.parameters(), lr=args.lr, weight_decay=args.train_l2)
     elif args.optimizer == 'adam':
-        optimizer  = optim.Adam(model.parameters(), lr=args.lr)
+        optimizer  = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.train_l2)
     else:
         raise Exception('Optimizer not be specified!')
 
@@ -88,7 +95,11 @@ def train(args):
         writer1.add_scalar('train/loss', train_loss, epoch)
         writer1.add_scalar('train/acc', train_acc, epoch)
 
-        save_dir = os.path.join(args.path_prefix, 'saved', args.source_model, args.true_dataset, 'true')
+        save_dir = os.path.join(args.path_prefix, 'saved', 
+                                f'sm_{args.source_model}', 
+                                f'td_{args.true_dataset}', 
+                                f't_drop_{args.train_dropout}',
+                                f't_l2_{args.train_l2}','true')
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         acc = eval(args, model, val_dataloader)
@@ -122,7 +133,11 @@ def eval(args, model, val_dataloader):
     return val_acc
 
 def true_model_test(args):
-    save_dir = os.path.join(args.path_prefix, 'saved', args.source_model, args.true_dataset, 'true', 'trained_model.pth')
+    save_dir = os.path.join(args.path_prefix, 'saved', 
+                                f'sm_{args.source_model}', 
+                                f'td_{args.true_dataset}', 
+                                f't_drop_{args.train_dropout}',
+                                f't_l2_{args.train_l2}','true')
 
     dataset = load_dataset(args.true_dataset) 
     test_dataset = dataset(mode='test')

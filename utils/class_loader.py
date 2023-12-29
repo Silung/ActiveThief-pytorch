@@ -41,6 +41,13 @@ def load_dataset(dataset, markable=False):
         else:
             from dataset.generated_dataset import GeneratedCifarDataset
             ds = GeneratedCifarDataset
+    elif dataset == 'generated_cifar_finetune':
+        if markable:
+            from dataset.generated_dataset import GeneratedCifarFinetuneMarkableDataset
+            ds = GeneratedCifarFinetuneMarkableDataset
+        else:
+            from dataset.generated_dataset import GeneratedCifarFinetuneDataset
+            ds = GeneratedCifarFinetuneDataset
     elif dataset == 'generated_mnist':
         if markable:
             from dataset.generated_dataset import GeneratedMnistMarkableDataset
@@ -55,6 +62,20 @@ def load_dataset(dataset, markable=False):
         else:
             from dataset.generated_dataset import GeneratedImagenetDataset
             ds = GeneratedImagenetDataset
+    elif dataset == 'random':
+        if markable:
+            from dataset.random_dataset import RandomMarkableDataset
+            ds = RandomMarkableDataset
+        else:
+            from dataset.random_dataset import RandomDataset
+            ds = RandomDataset
+    elif dataset == 'ordered':
+        if markable:
+            from dataset.random_dataset import OrderedMarkableDataset
+            ds = OrderedMarkableDataset
+        else:
+            from dataset.random_dataset import OrderedDataset
+            ds = OrderedDataset
     elif dataset == 'gtsrb':
         if markable:
             from dataset.gtsrb_dataset import GtsrbMarkableDataset
@@ -85,7 +106,14 @@ def load_dataset(dataset, markable=False):
 def load_model(model_class):
     model = None
     
-    if model_class.startswith('cnn_'):
+    if model_class.startswith('resnet'):
+        if model_class == 'resnet':
+            from models.resnet import ResNet
+            return ResNet
+        elif model_class == 'resnet_pretrained':
+            from models.resnet import ResNet_Pretrained
+            return ResNet_Pretrained
+    elif model_class.startswith('cnn_'):
         from models.cnn import CNN
         blocks, convs_in_block = model_class.strip().split('_')[1:]
         blocks, convs_in_block = int(blocks), int(convs_in_block)
