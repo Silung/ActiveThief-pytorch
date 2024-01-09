@@ -14,13 +14,12 @@ class ResNet_Pretrained(nn.Module):
         # Accepts PIL.Image, batched (B, C, H, W)
         x = x.float().permute(0,3,1,2)
         x = self.preprocess(x)
-        
         x = self.model(x)
         return x
     
 class ResNet(nn.Module):
     def __init__(self):
-        super(ResNet_Pretrained, self).__init__()
+        super(ResNet, self).__init__()
         weights = ResNet18_Weights.IMAGENET1K_V1
         self.preprocess = weights.transforms()
         self.model = resnet18(weights=None)

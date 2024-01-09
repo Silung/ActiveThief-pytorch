@@ -30,10 +30,7 @@ class EarlyStopping: # 这个是别人写的工具类，大家可以把它放到
         self.trace_func = trace_func
         self.best_model_parms = None
 
-    def __call__(self, val_loss, model):
-
-        score = -val_loss
-
+    def __call__(self, score, val_loss, model):
         if self.best_score is None:
             self.best_score = score
             self.best_model_parms = model.state_dict()
@@ -42,8 +39,11 @@ class EarlyStopping: # 这个是别人写的工具类，大家可以把它放到
             self.counter += 1
             if self.trace_func is not None:
                 self.trace_func(f'EarlyStopping counter: {self.counter} out of {self.patience}')
-            if self.counter >= self.patience:
-                self.early_stop = True
+            if self.counter % self.patience == 0:
+                if val_loss > 1.5:
+                    self.counter = 0
+                else:
+                    self.early_stop = True
         else:
             self.best_score = score
             self.best_model_parms = model.state_dict()

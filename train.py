@@ -56,7 +56,11 @@ def train(args):
     if args.optimizer == 'adagrad':
         optimizer  = optim.Adagrad(model.parameters(), lr=args.lr, weight_decay=args.train_l2)
     elif args.optimizer == 'adam':
-        optimizer  = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.train_l2)
+        # optimizer  = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.train_l2)
+        optimizer  = optim.Adam([
+                {'params': model.fc.parameters()},
+                {'params': model.conv_blocks.parameters(), 'weight_decay': args.train_l2}
+            ], lr=args.lr, weight_decay=0)
     else:
         raise Exception('Optimizer not be specified!')
 
@@ -65,10 +69,9 @@ def train(args):
     best_acc = -1
     for epoch in range(args.num_epoch):
         model.train()
-        train_dataloader = tqdm(train_dataloader)
         acc_list = []
         loss_list = []
-        for items in train_dataloader:
+        for items in tqdm(train_dataloader):
             optimizer.zero_grad()
             if args.true_dataset in ['agnews', 'imdb']:
                 input, label, offset = items
@@ -85,8 +88,8 @@ def train(args):
             acc = pred.cpu().eq(label.data).numpy().mean()
             acc_list.append(acc)
             loss_list.append(loss.item())
-            train_dataloader.set_description(f'Epoch: {epoch}')
-            train_dataloader.set_postfix({'Loss': '{0:1.4f}'.format(loss.item()), 'ACC': '{0:1.4f}'.format(acc)})
+            # train_dataloader.set_description(f'Epoch: {epoch}')
+            # train_dataloader.set_postfix({'Loss': '{0:1.4f}'.format(loss.item()), 'ACC': '{0:1.4f}'.format(acc)})
             
 
         train_loss = np.array(loss_list).mean()
@@ -113,8 +116,7 @@ def eval(args, model, val_dataloader):
     model.eval()
 
     acc_list = []
-    val_dataloader = tqdm(val_dataloader)
-    for items in val_dataloader:
+    for items in tqdm(val_dataloader):
         if args.true_dataset in ['agnews', 'imdb']:
             input, label, offset = items
             output = model(input.to(args.device), offset.to(args.device))
@@ -125,8 +127,8 @@ def eval(args, model, val_dataloader):
         
         acc = pred.cpu().eq(label.data).numpy().mean()
         acc_list.append(acc)
-        val_dataloader.set_description('Evaluating')
-        val_dataloader.set_postfix({'ACC': '{0:1.4f}'.format(acc)})
+        # val_dataloader.set_description('Evaluating')
+        # val_dataloader.set_postfix({'ACC': '{0:1.4f}'.format(acc)})
         
     val_acc = np.array(acc_list).mean()
     print('Val Acc: {:.6}\t'.format(val_acc))
@@ -160,8 +162,7 @@ def true_model_test(args):
     model.eval()
 
     acc_list = []
-    test_dataloader = tqdm(test_dataloader)
-    for items in test_dataloader:
+    for items in tqdm(test_dataloader):
         if args.true_dataset in ['agnews', 'imdb']:
             input, label, offset = items
             output = model(input.to(args.device), offset.to(args.device))
@@ -172,8 +173,8 @@ def true_model_test(args):
         
         acc = pred.cpu().eq(label.data).numpy().mean()
         acc_list.append(acc)
-        test_dataloader.set_description('Testing')
-        test_dataloader.set_postfix({'ACC': '{0:1.4f}'.format(acc)})
+        # test_dataloader.set_description('Testing')
+        # test_dataloader.set_postfix({'ACC': '{0:1.4f}'.format(acc)})
         
     test_acc = np.array(acc_list).mean()
     print('Test Acc: {:.6}\t'.format(test_acc))

@@ -52,13 +52,19 @@ class ImagenetDataset(BaseDataset):
         xs = []
         ys = []
 
-        if mode in ['train', 'val']:
+        # if mode in ['train', 'val']:
             # data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(1, 6)]
-            data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(1, 2)]
+            # data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(1, 2)]
         # elif mode == 'val':
         #     # data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(9, 10+1)]
         #     data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(9,10)]
+        # else:
+        #     data_files = [os.path.join(self.path, 'val_data.json')]
+            
+        if mode == 'train':
+            data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(1, 2)]
         else:
+            assert mode == 'val', 'Mode not supported.'
             data_files = [os.path.join(self.path, 'val_data.json')]
 
         for data_file in data_files:

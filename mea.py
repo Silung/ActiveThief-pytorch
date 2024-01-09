@@ -33,28 +33,31 @@ def show(tensor):
     plt.axis('off')  # 不显示坐标轴
     plt.show()
 
-def mark_dataset(args, model, dataloader):
-    if isinstance(dataloader, tqdm):
-        dataset = dataloader.iterable.dataset
-    else:
-        dataset = dataloader.dataset
+def mark_dataset(args, model, dataloader, budget=None):
+    model.eval()
+    dataset = dataloader.dataset
     dataset.set_state('unmark')
-    for i in range(len(dataset)):
+    if budget is None:
+        budget = len(dataset)
+    for i in range(budget):
         dataset.mark(i)
-        
-    dataset.set_state('marking')
     
+    lebel_dataset(args, model, dataloader)
+    
+        
+def lebel_dataset(args, model, dataloader):
+    dataset = dataloader.dataset
+    dataset.set_state('marking')
     model.eval()
     update_info = {}
     with torch.no_grad():
         print('Labeling dataset...')
-        for trX, l, idx, _ in dataloader:
+        for trX, l, idx, _ in tqdm(dataloader):
             trY = model(trX.to(args.device))
             for i, y in enumerate(trY):
                 update_info[idx[i].item()] = y
         for i, y in update_info.items():
             dataset.update(i, aux_data=y)
-            
     dataset.set_state('marked')
 
 def mea(args):
@@ -64,14 +67,14 @@ def mea(args):
     test_dataset = dataset(mode='test')
     
     if args.true_dataset not in ['agnews', 'imdb']:
-        val_dataloader = tqdm(DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False))
-        test_dataloader = tqdm(DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False))
+        val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
+        test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
         sample_shape = val_dataset.get_sample_shape()
         width, height, channels = sample_shape
         resize = (width, height)
     else:
-        val_dataloader = tqdm(DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=val_dataset.collate_batch))
-        test_dataloader = tqdm(DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=test_dataset.collate_batch))
+        val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=val_dataset.collate_batch)
+        test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=test_dataset.collate_batch)
     num_classes = val_dataset.get_num_classes()
     
     # true model
@@ -103,7 +106,7 @@ def mea(args):
                                'td_' + args.true_dataset,
                                f't_drop_{args.train_dropout}',
                                f't_l2_{args.train_l2}',
-                               'cm_' + args.copy_model,
+                               'cm_' + args.copy_model + '' if args.pretrain is None else '_pretrain',
                                'nd_' + args.noise_dataset,
                                'api_' + args.api_retval,
                                'sampling_' + args.sampling_method,
@@ -111,7 +114,8 @@ def mea(args):
                                'iter_' + str(args.num_iter), 
                                'k_' + str(args.k), 
                                'm_drop_' + str(args.mea_dropout),
-                               f'm_l2_{args.mea_l2}')
+                               f'm_l2_{args.mea_l2}',
+                               f'pat_{args.patience}')
     # logdir_papernot_copy = os.path.join(args.path_prefix, 'logdir', args.source_model, args.true_dataset, str(args.num_iter), str(args.k), args.api_retval, args.copy_model, 'papernot', args.sampling_method)
     
     print("deleting the dir {}".format(logdir_copy))
@@ -131,20 +135,22 @@ def mea(args):
         train_noise_dataset = noise_dataset(mode='train', resize=resize)
         val_noise_dataset = noise_dataset(mode='val', resize=resize)
     
-    train_noise_dataloader = tqdm(DataLoader(train_noise_dataset, batch_size=args.batch_size, shuffle=True))
-    val_noise_dataloader = tqdm(DataLoader(val_noise_dataset, batch_size=args.batch_size, shuffle=True))
+    train_noise_dataloader = DataLoader(train_noise_dataset, batch_size=args.batch_size, shuffle=True)
+    val_noise_dataloader = DataLoader(val_noise_dataset, batch_size=args.batch_size, shuffle=False)
 
-    
-    # 标记val noise dataset并查询
-    mark_dataset(args, true_model, val_noise_dataloader)
+    used_budget = 0
     # 标记true val dataset并查询
     mark_dataset(args, true_model, val_dataloader)
     # 标记true test dataset并查询
     mark_dataset(args, true_model, test_dataloader)
+    print(f'True val dataset size: {len(val_dataset)}')
+    print(f'True test dataset size: {len(test_dataset)}')
 
-    # 初始标记train dataset S0 
-    for i in range(args.initial_size):
-        train_noise_dataset.mark(i)
+    # 初始标记 val noise dataset并查询
+    mark_dataset(args, true_model, val_noise_dataloader, int(0.2*args.initial_size))
+    # 初始标记train dataset S0
+    mark_dataset(args, true_model, train_noise_dataloader, int(0.8*args.initial_size))
+    used_budget += args.initial_size
 
     loss_func = nn.CrossEntropyLoss()
     
@@ -163,31 +169,43 @@ def mea(args):
                 copy_model = copy_model_type(in_channels=channels, num_classes=num_classes, dataset_name=args.true_dataset, fc_layers=[]).to(args.device)
         elif args.copy_model.startswith('resnet'):
             copy_model = copy_model_type()
-        optimizer  = optim.Adam(copy_model.parameters(), lr=args.lr, weight_decay=args.mea_l2)
-        
-        # 查询标记
-        true_model.eval()
-        train_noise_dataset.set_state('marking')
-        update_info = {}
-        with torch.no_grad():
-            for trX, y, idx, _ in train_noise_dataloader:
-                # for i in trX:
-                #     show(i)
-                trY = true_model(trX.to(args.device))
-                for i, y in enumerate(trY):
-                    update_info[idx[i].item()] = y
-            for i, y in update_info.items():
-                train_noise_dataset.update(i, aux_data=y)
+
+        if args.pretrain is not None:
+            parms = torch.load(args.pretrain)
+            del parms['fc.weight']
+            del parms['fc.bias']
+            if args.true_dataset == 'mnist':
+                del parms['conv_blocks.0.conv_blocks.0.weight']
+            copy_model.load_state_dict(parms, strict=False)
+        copy_model.to(args.device)
+        # optimizer  = optim.Adam(copy_model.parameters(), lr=args.lr, weight_decay=args.mea_l2)
+        if args.copy_model.startswith('cnn'):
+            if args.lr > 0:
+                optimizer  = optim.Adam([
+                    {'params': copy_model.fc.parameters()},
+                    {'params': copy_model.conv_blocks.parameters(), 'weight_decay': args.train_l2}
+                    ], lr=args.lr)
+            else:
+                optimizer  = optim.Adam([
+                    {'params': copy_model.fc.parameters()},
+                    {'params': copy_model.conv_blocks.parameters(), 'weight_decay': args.train_l2}
+                    ])
+        elif args.copy_model.startswith('resnet'):
+            optimizer  = optim.Adam([{"params":copy_model.model.layer4.parameters()},
+                                     {"params":copy_model.model.fc.parameters()}], weight_decay=args.train_l2)
+            
 
         # 训练替代模型
         copy_model.train()
         train_noise_dataset.set_state('marked')
-        query_count = len(train_noise_dataset)
-        print(f'Marked Dataset Size: {query_count}')
+        val_noise_dataset.set_state('marked')
+        print(f'Marked Train Noise Dataset Size: {len(train_noise_dataset)}')
+        print(f'Marked Val Noise Dataset Size: {len(val_noise_dataset)}')
+        print(f'Used Budget: {used_budget}')
         loss_list = []
         acc_list = []
-        # early_stopping = EarlyStopping(patience=100, verbose=True, trace_func=None)
-        early_stopping = EarlyStopping(patience=300, verbose=True, trace_func=None, delta=1.11e-5)
+        early_stopping = EarlyStopping(patience=args.patience, verbose=True, trace_func=None)
+        # early_stopping = EarlyStopping(patience=300, verbose=True, trace_func=None, delta=1.11e-5)
         for epoch in trange(args.num_epoch):
             for trX, _, idx, p in train_noise_dataloader:
                 optimizer.zero_grad()
@@ -213,8 +231,8 @@ def mea(args):
             # "We set aside 20% of the query budget for validation"
             val_noise_loss, val_noise_acc, val_noise_f1 = eval(args, copy_model, val_noise_dataloader, print_result=False)
             # print(val_noise_acc)
-            # early_stopping(-val_noise_f1, copy_model)
-            early_stopping(val_noise_loss, copy_model)
+            early_stopping(val_noise_f1, np.mean(loss_list), copy_model)
+            # early_stopping(val_noise_loss, copy_model)
             
             # if epoch % 20 == 0:
             #     test_loss, test_acc, test_f1 = eval(args, copy_model, test_dataloader)
@@ -223,9 +241,9 @@ def mea(args):
                 # print(pred)
                 # print(val_noise_acc)
             if early_stopping.early_stop:
-                writer2.add_scalar('noise_data_val/loss', val_noise_loss, query_count)
-                writer2.add_scalar('noise_data_val/aggrement', val_noise_acc, query_count)
-                writer2.add_scalar('noise_data_val/f1', val_noise_f1, query_count)
+                writer2.add_scalar('noise_data_val/loss', val_noise_loss, used_budget)
+                writer2.add_scalar('noise_data_val/aggrement', val_noise_acc, used_budget)
+                writer2.add_scalar('noise_data_val/f1', val_noise_f1, used_budget)
                 # print("Early Stop!")
                 break
             step += 1
@@ -234,16 +252,17 @@ def mea(args):
 
         train_loss = np.array(loss_list).mean()
         train_acc = np.array(acc_list).mean()
-        print('Copy model iter: {}\t Train Loss: {:.6}\t Train Acc: {:.6}\t'.format(it, train_loss, train_acc))
-        writer2.add_scalar('noise_data_train/loss', train_loss, query_count)
-        writer2.add_scalar('noise_data_train/aggrement', train_acc, query_count)
+        print('Copy model iter: {}\t Train Loss: {:.6}\t Train Agr: {:.6}\t'.format(it, train_loss, train_acc))
+        print('Val Loss: {:.6}\t Val Agr: {:.2}\t Val F1: {:.2}\t'.format(val_noise_loss, val_noise_acc, val_noise_f1))
+        writer2.add_scalar('noise_data_train/loss', train_loss, used_budget)
+        writer2.add_scalar('noise_data_train/aggrement', train_acc, used_budget)
         
         # test
         print('Test on true dataset')
         test_loss, test_acc, test_f1 = eval(args, copy_model, test_dataloader)
-        writer2.add_scalar('true_data_test/loss', test_loss, query_count)
-        writer2.add_scalar('true_data_test/aggrement', test_acc, query_count)
-        writer2.add_scalar('true_data_test/f1', test_f1, query_count)
+        writer2.add_scalar('true_data_test/loss', test_loss, used_budget)
+        writer2.add_scalar('true_data_test/aggrement', test_acc, used_budget)
+        writer2.add_scalar('true_data_test/f1', test_f1, used_budget)
         
         if it == args.num_iter:
             break
@@ -251,6 +270,7 @@ def mea(args):
         # 使用替代模型查询剩余未标记样本标签
         copy_model.eval()
         train_noise_dataset.set_state('unmark')
+        val_noise_dataset.set_state('unmark')
         
         Y = None
         Idx = []
@@ -264,21 +284,27 @@ def mea(args):
                 Idx += idx.tolist()
             
         # Active Learning策略
+        b = int(0.8*args.k)
         if args.sampling_method == 'random':
-            sss = RandomSelectionStrategy(args.k, Idx, Y)
+            sss = RandomSelectionStrategy(b, Idx, Y)
         elif args.sampling_method == 'uncertainty':
-            sss = UncertaintySelectionStrategy(args.k, Idx, F.softmax(Y.cpu(),dim=-1))
+            sss = UncertaintySelectionStrategy(b, Idx, F.softmax(Y.cpu(),dim=-1))
         elif args.sampling_method == 'certainty':
-            sss = CertaintySelectionStrategy(args.k, Idx, F.softmax(Y.cpu(),dim=-1))
+            sss = CertaintySelectionStrategy(b, Idx, F.softmax(Y.cpu(),dim=-1))
         elif args.sampling_method == 'kcenter':
             prob = train_noise_dataset.aux_data.values()
             true_points = torch.concat(list(prob), dim=0).reshape(len(prob), -1)
-            sss = KCenterGreedyApproach(args.k, Idx, Y, true_points, args.batch_size)
+            sss = KCenterGreedyApproach(b, Idx, Y, true_points, args.batch_size)
         # elif args.sampling_method == 'deepfool':
         #     sss = AdversarialSelectionStrategy(args.k, Idx, Y)
         s = sss.get_subset()
         for i in s:
             train_noise_dataset.mark(i)
+        lebel_dataset(args, true_model, train_noise_dataloader)
+        for i in range(int(0.2*used_budget), int(0.2*(used_budget + args.k))):
+            val_noise_dataset.mark(i)
+        lebel_dataset(args, true_model, val_noise_dataloader)
+        used_budget += args.k
 
     print("---Copynet trainning completed---")
 
@@ -290,6 +316,7 @@ def entropy(vector):
     return entropy_value
 
 def eval(args, model, val_dataloader, print_result=True):
+    val_dataloader.dataset.set_state('marked')
     model.eval()
     loss_list = []
     label_list = None
@@ -313,7 +340,7 @@ def eval(args, model, val_dataloader, print_result=True):
                 label_list = torch.cat([label_list, label], dim=0)
                 pred_list = torch.cat([pred_list, pred], dim=0)
             
-            val_dataloader.set_postfix({'Val Loss': '{0:1.4f}'.format(loss.item()), 'ACC': '{0:1.4f}'.format(acc)})
+            # val_dataloader.set_postfix({'Val Loss': '{0:1.4f}'.format(loss.item()), 'ACC': '{0:1.4f}'.format(acc)})
             
     val_loss = np.array(loss_list).mean()
     val_acc = pred_list.eq(label_list).cpu().numpy().mean()
@@ -321,7 +348,14 @@ def eval(args, model, val_dataloader, print_result=True):
     #     num_class = val_dataloader.iterable.dataset.get_num_classes()
     # else:
     #     num_class = val_dataloader.dataset.get_num_classes()
-    num_class = int(max(max(label_list), max(pred_list))) + 1
+    if 'cifar' in args.true_dataset:
+        num_class = 10
+    elif 'mnist' in args.true_dataset:
+        num_class = 10
+    elif 'gtsrb' in args.true_dataset:
+        num_class = 43
+    elif 'imagenet' in args.true_dataset:
+        num_class = 1000
     val_f1 = f1_score(label_list.cpu(), pred_list.cpu(), num_class)
     if print_result:
         print('Loss: {:.6}\t Acc: {:.6}\t F1: {:.6}\t'.format(val_loss, val_acc, val_f1))

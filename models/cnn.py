@@ -9,12 +9,12 @@ class ConvBlock(nn.Module):
 
         layers.append(nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1))
         layers.append(nn.ReLU())
-        layers.append(nn.BatchNorm2d(out_channels))
+        layers.append(nn.BatchNorm2d(out_channels, momentum=0.01))
 
         for _ in range(convs_in_block - 1):  # 2 repeated units
             layers.append(nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1))
             layers.append(nn.ReLU())
-            layers.append(nn.BatchNorm2d(out_channels))
+            layers.append(nn.BatchNorm2d(out_channels, momentum=0.01))
         
         self.conv_blocks = nn.Sequential(*layers)
         
