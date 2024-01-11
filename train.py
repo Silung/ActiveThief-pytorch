@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter 
 
 from utils.class_loader import *
+from utils.utils import f1_score
 
 
 def train(args):
@@ -139,7 +140,7 @@ def true_model_test(args):
                                 f'sm_{args.source_model}', 
                                 f'td_{args.true_dataset}', 
                                 f't_drop_{args.train_dropout}',
-                                f't_l2_{args.train_l2}','true')
+                                f't_l2_{args.train_l2}','true','trained_model.pth')
 
     dataset = load_dataset(args.true_dataset) 
     test_dataset = dataset(mode='test')
@@ -161,7 +162,8 @@ def true_model_test(args):
     model = model.to(args.device)
     model.eval()
 
-    acc_list = []
+    label_list = None
+    pred_list = None
     for items in tqdm(test_dataloader):
         if args.true_dataset in ['agnews', 'imdb']:
             input, label, offset = items
@@ -171,11 +173,16 @@ def true_model_test(args):
             output = model(input.to(args.device))
         pred = torch.max(output, dim=-1, keepdim=False)[-1]
         
-        acc = pred.cpu().eq(label.data).numpy().mean()
-        acc_list.append(acc)
+        if label_list is None:
+            label_list = label
+            pred_list = pred
+        else:
+            label_list = torch.cat([label_list, label], dim=0)
+            pred_list = torch.cat([pred_list, pred], dim=0)
         # test_dataloader.set_description('Testing')
         # test_dataloader.set_postfix({'ACC': '{0:1.4f}'.format(acc)})
-        
-    test_acc = np.array(acc_list).mean()
-    print('Test Acc: {:.6}\t'.format(test_acc))
+    
+    test_acc = pred_list.eq(label_list).cpu().numpy().mean()
+    test_f1 = f1_score(label_list.cpu(), pred_list.cpu(), num_classes)
+    print('Test Acc: {:.6}\t Test F1: {:.6}'.format(test_acc, test_f1))
     return test_acc

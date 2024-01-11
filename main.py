@@ -79,13 +79,14 @@ def main():
         assert args.k is not None
         noise_dataset = "{}-{}-{}+{}+{}-{}" .format(noise_dataset, args.sampling_method, args.initial_seed, args.val_size , args.num_iter * args.k, args.optimizer)
 
+    # true_model_test(args)
 
     if args.train_source_model:
         # Train our ground truth model.
         t = time.time()
         train(args)
         print("Training source model completed {} min".format(round((time.time() - t)/60, 2)))
-        # true_model_test(args)
+        true_model_test(args)
 
     if args.copy_source_model:
         t = time.time()

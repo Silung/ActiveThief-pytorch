@@ -9,7 +9,7 @@ import os
 # http://image-net.org/signup.php?next=download-images #
 ########################################################
 
-imagenet_username = 'Silung'
+imagenet_username = ''
 imagenet_password = input('Input Pwd')
 
 ########################################################

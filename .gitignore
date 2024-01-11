@@ -6,3 +6,4 @@ saved
 *.DS_Store
 *.pyc
 report
+temp*

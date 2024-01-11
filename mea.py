@@ -106,7 +106,7 @@ def mea(args):
                                'td_' + args.true_dataset,
                                f't_drop_{args.train_dropout}',
                                f't_l2_{args.train_l2}',
-                               'cm_' + args.copy_model + '' if args.pretrain is None else '_pretrain',
+                               'cm_' + args.copy_model + ('' if args.pretrain is None else '_pretrain'),
                                'nd_' + args.noise_dataset,
                                'api_' + args.api_retval,
                                'sampling_' + args.sampling_method,
@@ -264,7 +264,7 @@ def mea(args):
         writer2.add_scalar('true_data_test/aggrement', test_acc, used_budget)
         writer2.add_scalar('true_data_test/f1', test_f1, used_budget)
         
-        if it == args.num_iter:
+        if it == args.num_iter - 1:
             break
             
         # 使用替代模型查询剩余未标记样本标签
