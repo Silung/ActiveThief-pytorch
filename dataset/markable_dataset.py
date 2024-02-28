@@ -49,3 +49,15 @@ class MarkableDataset():
         self.marking.remove(i)
         self.marked.append(i)
         self.aux_data[i] = aux_data
+        
+    def reset(self):
+        self.state = 'unmark'
+        
+        # Initialize hashsets and hashmap
+        self.marked = []
+        self.marking = []
+        self.unmark = list(range(len(self.data)))
+        
+        self.aux_data = {}
+        self._marked_counter = 0
+        self._unmark_counter = 0

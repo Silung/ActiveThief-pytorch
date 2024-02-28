@@ -10,6 +10,7 @@ from mea import *
 from train import *
 from true_model_test_on_noise_dataset import *
 from utils.class_loader import *
+from utils.optuna_search import *
 
 
 def fix_random_seed_as(random_seed):
@@ -29,7 +30,7 @@ def main():
     parser.add_argument('--true_dataset', type=str, default='mnist')
     parser.add_argument('--noise_dataset', type=str, default='imagenet')
     parser.add_argument('--num_to_keep', type=int, default=None)
-    parser.add_argument('--seed', type=int, default=1337)
+    parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--batch_size', type=int, default=150)
     parser.add_argument('--device', type=str, choices=['cuda', 'cpu'], default='cuda')
     parser.add_argument('--lr', type=float, default=1e-3)
@@ -50,12 +51,14 @@ def main():
     parser.add_argument('--true_model_test_on_noise_dataset', action='store_true')
 
     parser.add_argument('--sampling_method', type=str, choices=['random', 'uncertainty', 'kcenter', 'deepfool', 'certainty'], default='random')
-    parser.add_argument('--optimizer', type=str, default='adam')
+    parser.add_argument('--optimizer', type=str, choices=['adam', 'sgd'], default='adam')
     parser.add_argument('--api_retval', choices=['onehot', 'softmax'], type=str, default='onehot')
     parser.add_argument('--pretrain', type=str, default=None)
     
     parser.add_argument('--path_prefix', type=str, default='')
     parser.add_argument('--num_fig', type=int, default=10)
+    parser.add_argument('--optuna_search', action='store_true')
+    
 
     args = parser.parse_args()
 
@@ -97,7 +100,9 @@ def main():
         t = time.time()
         true_model_test_on_noise_dataset(args)
         print("True model test on noise dataset completed {} min".format(round((time.time() - t)/60, 2)))
-
+        
+    if args.optuna_search:
+        optuna_search(args)
 
 
 main()

@@ -59,9 +59,8 @@ def lebel_dataset(args, model, dataloader):
         for i, y in update_info.items():
             dataset.update(i, aux_data=y)
     dataset.set_state('marked')
-
-def mea(args):
-    # true dataset
+    
+def load_true_data(args):
     dataset = load_dataset(args.true_dataset, markable=True)
     val_dataset = dataset(mode='val')
     test_dataset = dataset(mode='test')
@@ -69,13 +68,39 @@ def mea(args):
     if args.true_dataset not in ['agnews', 'imdb']:
         val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
         test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
-        sample_shape = val_dataset.get_sample_shape()
-        width, height, channels = sample_shape
-        resize = (width, height)
     else:
         val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=val_dataset.collate_batch)
         test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=test_dataset.collate_batch)
+    return val_dataset, test_dataset, val_dataloader, test_dataloader
+
+def load_noise_data(args):
+    noise_dataset = load_dataset(args.noise_dataset, markable=True)
+    if args.noise_dataset == 'mnist_dist':
+        train_noise_dataset = noise_dataset(mode='train', resize=args.resize, normalize_channels=True, num_fig=args.num_fig)
+        val_noise_dataset = noise_dataset(mode='val', resize=args.resize, normalize_channels=True, num_fig=args.num_fig)
+    elif 'mnist' in args.true_dataset:
+        train_noise_dataset = noise_dataset(mode='train', resize=args.resize, normalize_channels=True)
+        val_noise_dataset = noise_dataset(mode='val', resize=args.resize, normalize_channels=True)
+    else:
+        train_noise_dataset = noise_dataset(mode='train', resize=args.resize)
+        val_noise_dataset = noise_dataset(mode='val', resize=args.resize)
+    
+    train_noise_dataloader = DataLoader(train_noise_dataset, batch_size=args.batch_size, shuffle=True)
+    val_noise_dataloader = DataLoader(val_noise_dataset, batch_size=args.batch_size, shuffle=False)
+    return train_noise_dataset, val_noise_dataset, train_noise_dataloader, val_noise_dataloader
+
+def mea(args):
+    # true dataset
+    val_dataset, test_dataset, val_dataloader, test_dataloader = load_true_data(args)
+    if args.true_dataset not in ['agnews', 'imdb']:
+        sample_shape = val_dataset.get_sample_shape()
+        width, height, channels = sample_shape
+        args.resize = (width, height)
+    
     num_classes = val_dataset.get_num_classes()
+    
+    # copy dataset
+    train_noise_dataset, val_noise_dataset, train_noise_dataloader, val_noise_dataloader = load_noise_data(args)
     
     # true model
     true_model_dir = os.path.join(args.path_prefix, 'saved', 
@@ -94,7 +119,7 @@ def mea(args):
         else:
             true_model = source_model_type(num_classes, args.true_dataset, channels)
     else:
-        vocab_size = train_dataset.get_vocab_size()
+        vocab_size = train_noise_dataset.get_vocab_size()
         true_model = source_model_type(num_classes, args.true_dataset, vocab_size=vocab_size)
     print(true_model)
     true_model.load_state_dict(torch.load(os.path.join(true_model_dir, 'trained_model.pth')))
@@ -123,21 +148,6 @@ def mea(args):
     writer2 = SummaryWriter(logdir_copy)
     print("Copying source model using iterative approach")
 
-    # copy dataset
-    noise_dataset = load_dataset(args.noise_dataset, markable=True)
-    if args.noise_dataset == 'mnist_dist':
-        train_noise_dataset = noise_dataset(mode='train', resize=resize, normalize_channels=True, num_fig=args.num_fig)
-        val_noise_dataset = noise_dataset(mode='val', resize=resize, normalize_channels=True, num_fig=args.num_fig)
-    elif 'mnist' in args.true_dataset:
-        train_noise_dataset = noise_dataset(mode='train', resize=resize, normalize_channels=True)
-        val_noise_dataset = noise_dataset(mode='val', resize=resize, normalize_channels=True)
-    else:
-        train_noise_dataset = noise_dataset(mode='train', resize=resize)
-        val_noise_dataset = noise_dataset(mode='val', resize=resize)
-    
-    train_noise_dataloader = DataLoader(train_noise_dataset, batch_size=args.batch_size, shuffle=True)
-    val_noise_dataloader = DataLoader(val_noise_dataset, batch_size=args.batch_size, shuffle=False)
-
     used_budget = 0
     # 标记true val dataset并查询
     mark_dataset(args, true_model, val_dataloader)
@@ -157,6 +167,7 @@ def mea(args):
     max_entropy = entropy(torch.ones((val_dataset.get_num_classes())))
     
     step = 0
+    weighted_val_score = 0
     for it in range(args.num_iter):
         # copy model
         copy_model_type = load_model(args.copy_model)
@@ -179,19 +190,23 @@ def mea(args):
             copy_model.load_state_dict(parms, strict=False)
         copy_model.to(args.device)
         # optimizer  = optim.Adam(copy_model.parameters(), lr=args.lr, weight_decay=args.mea_l2)
+        if args.optimizer == 'adam':
+            opti = optim.Adam
+        elif args.optimizer == 'sgd':
+            opti = optim.SGD
         if args.copy_model.startswith('cnn'):
             if args.lr > 0:
-                optimizer  = optim.Adam([
+                optimizer  = opti([
                     {'params': copy_model.fc.parameters()},
                     {'params': copy_model.conv_blocks.parameters(), 'weight_decay': args.train_l2}
                     ], lr=args.lr)
             else:
-                optimizer  = optim.Adam([
+                optimizer  = opti([
                     {'params': copy_model.fc.parameters()},
                     {'params': copy_model.conv_blocks.parameters(), 'weight_decay': args.train_l2}
                     ])
         elif args.copy_model.startswith('resnet'):
-            optimizer  = optim.Adam([{"params":copy_model.model.layer4.parameters()},
+            optimizer  = opti([{"params":copy_model.model.layer4.parameters()},
                                      {"params":copy_model.model.fc.parameters()}], weight_decay=args.train_l2)
             
 
@@ -248,6 +263,7 @@ def mea(args):
                 break
             step += 1
         
+        weighted_val_score += 1/args.num_iter * val_noise_acc
         copy_model.load_state_dict(early_stopping.best_model_parms)
 
         train_loss = np.array(loss_list).mean()
@@ -307,6 +323,7 @@ def mea(args):
         used_budget += args.k
 
     print("---Copynet trainning completed---")
+    return weighted_val_score
 
 def entropy(vector):
     # 将向量归一化为概率分布

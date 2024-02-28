@@ -41,7 +41,6 @@ python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet
 
 python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0
 # 10k 20k 30k 40k
-# 0.5794 0.6946 0.7329 0.7462 seed=1960
 # 0.6163 0.7145 0.7392 0.7462 seed=0
 # 0.6316 0.6817 0.7147 0.7453 seed=1
 # 0.6077 0.6879 0.7441 0.7503 seed=2

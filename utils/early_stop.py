@@ -35,6 +35,9 @@ class EarlyStopping: # 这个是别人写的工具类，大家可以把它放到
             self.best_score = score
             self.best_model_parms = model.state_dict()
             # self.save_checkpoint(val_loss, model)
+        elif val_loss > 1e4:
+            # bad train
+            self.early_stop = True
         elif score < self.best_score + self.delta:
             self.counter += 1
             if self.trace_func is not None:

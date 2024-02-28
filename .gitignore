@@ -7,3 +7,4 @@ saved
 *.pyc
 report
 temp*
+*.sh
