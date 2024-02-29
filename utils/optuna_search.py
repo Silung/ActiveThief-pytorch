@@ -213,7 +213,7 @@ def optuna_search(args):
     
     # 使用Optuna库进行超参数搜索
     study = optuna.create_study(direction='maximize') # 根据目标函数来决定是'minimize'还是'maximize'
-    study.optimize(objective, n_trials=15) # n_trials 指的是试验次数
+    study.optimize(objective, n_trials=100) # n_trials 指的是试验次数
 
     # 输出最优的超参数组合和性能指标
     print('Best hyperparameters: {}'.format(study.best_params))

@@ -5,7 +5,7 @@ from os.path import expanduser, join
 from dataset.markable_dataset import MarkableDataset
 
 class MnistDataset(BaseDataset):
-    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None):
+    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None, transform=None):
         if mode == 'val':
             assert val_frac is not None
 
@@ -20,7 +20,8 @@ class MnistDataset(BaseDataset):
             mode=mode,
             val_frac=val_frac,
             normalize_channels=normalize_channels,
-            resize=resize
+            resize=resize,
+            transform=transform
         )
         
         self.aux_data = {}

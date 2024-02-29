@@ -50,6 +50,7 @@ python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet
 # 0.71 0.751 0.7608 0.7786 seed=0 pretrain
 # 0.6163(不涉及al不起作用) 0.7064 0.7244 0.7527 seed=0 al=k-center
 # 0.7148 0.7934 0.8071 0.8177 seed=0 softmax
+# 0.6559 0.7046 Best hyperparameters: {'lr': 0.000813134125425737, 'batch_size': 256, 'patience': 31, 'mea_dropout': 0.36046234275461114, 'mea_l2': 0.0001178318360561035}
 
 python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --copy_model resnet
 python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --copy_model resnet_pretrained

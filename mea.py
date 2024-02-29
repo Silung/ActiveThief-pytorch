@@ -75,6 +75,8 @@ def load_true_data(args):
 
 def load_noise_data(args):
     noise_dataset = load_dataset(args.noise_dataset, markable=True)
+    if not hasattr(args, 'resize'):
+        args.resize = None
     if args.noise_dataset == 'mnist_dist':
         train_noise_dataset = noise_dataset(mode='train', resize=args.resize, normalize_channels=True, num_fig=args.num_fig)
         val_noise_dataset = noise_dataset(mode='val', resize=args.resize, normalize_channels=True, num_fig=args.num_fig)
@@ -183,8 +185,10 @@ def mea(args):
 
         if args.pretrain is not None:
             parms = torch.load(args.pretrain)
-            del parms['fc.weight']
-            del parms['fc.bias']
+            if 'fc.weight' in parms:
+                del parms['fc.weight']
+            if 'fc.bias' in parms:
+                del parms['fc.bias']
             if args.true_dataset == 'mnist':
                 del parms['conv_blocks.0.conv_blocks.0.weight']
             copy_model.load_state_dict(parms, strict=False)

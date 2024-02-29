@@ -69,6 +69,7 @@ class CNN(nn.Module):
         self.fc = nn.Linear(ex_out_channels, num_classes)
     
     def forward(self, x):
+        # input shape H*W*C
         x = x.float().permute(0,3,1,2)
         x = self.conv_blocks(x)
         x = x.reshape(x.size(0), -1)  # Flatten

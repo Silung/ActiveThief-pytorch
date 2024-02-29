@@ -25,3 +25,6 @@ python main.py --copy_source_model --true_dataset imdb --num_epoch 400 --noise_d
 
 
 python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet --num_iter 10 -k 2000 --initial_size 2000
+
+# ssl
+python main.py --ssl --true_dataset cifar --noise_dataset imagenet

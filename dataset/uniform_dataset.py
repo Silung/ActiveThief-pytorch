@@ -3,11 +3,12 @@ import random
 from dataset.base_dataset import BaseDataset
 
 class UniformDataset(BaseDataset):
-    def __init__(self, normalize=False, mode='train', val_frac=None, normalize_channels=False, resize=None, shape=None, sample_limit=None):
+    def __init__(self, normalize=False, mode='train', val_frac=None, normalize_channels=False, resize=None, shape=None, sample_limit=None, transform=None):
         assert resize is None, 'Does not support resizing.'
         assert shape is not None, 'Shape must be specified.'
         assert normalize is False, 'Normalization is not supported.'
         assert normalize_channels is False, 'Normalization is not supported.'
+        self.transform = transform
         
         if mode == 'val':
             self.seed *= 2

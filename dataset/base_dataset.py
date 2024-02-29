@@ -8,7 +8,8 @@ from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
 
 class BaseDataset(Dataset):
-    def __init__(self, normalize=True, mode='train', val_frac=None, normalize_channels=False, resize=None):
+    def __init__(self, normalize=True, mode='train', val_frac=None, normalize_channels=False, resize=None, transform=None):
+        self.transform = transform
         self.random_state = random.getstate()
         
         print("Loading {} data".format(mode))
@@ -42,6 +43,8 @@ class BaseDataset(Dataset):
             
             assert np.abs(np.min(self.data) - 0.0) < 1e-1
             assert np.abs(np.max(self.data) - 1.0) < 1e-1
+        else:
+            self.data = self.data.astype(np.uint8)
 
     def __len__(self):
         return self.data.shape[0]
@@ -49,6 +52,8 @@ class BaseDataset(Dataset):
     def __getitem__(self, index):
         x = self.data[index]
         y = self.labels[index]
+        if self.transform is not None:
+            x = self.transform(x)
         return x, y
     
     def is_multilabel(self):

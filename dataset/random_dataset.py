@@ -4,7 +4,7 @@ from dataset.base_dataset import BaseDataset
 from dataset.markable_dataset import MarkableDataset
 
 class RandomDataset(BaseDataset):
-    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, resize=None):
+    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, resize=None, transform=None):
         self.num_samples = 30000
         if mode == 'val':
             assert val_frac is not None
@@ -14,7 +14,8 @@ class RandomDataset(BaseDataset):
             mode=mode,
             val_frac=val_frac,
             normalize_channels=normalize_channels,
-            resize=resize
+            resize=resize,
+            transform=transform
         )
         
     def is_multilabel(self):
@@ -40,7 +41,7 @@ class RandomDataset(BaseDataset):
         return 10
 
 class OrderedDataset(BaseDataset):
-    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, resize=None):
+    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, resize=None, transform=None):
         self.num_samples = 30000
         if mode == 'val':
             assert val_frac is not None
@@ -50,7 +51,8 @@ class OrderedDataset(BaseDataset):
             mode=mode,
             val_frac=val_frac,
             normalize_channels=normalize_channels,
-            resize=resize
+            resize=resize,
+            transform=transform
         )
         
     def is_multilabel(self):

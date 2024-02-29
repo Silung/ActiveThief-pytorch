@@ -7,7 +7,8 @@ from os.path import expanduser, join
 from dataset.markable_dataset import MarkableDataset
 
 class ImagenetDataset(BaseDataset):
-    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None):
+    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None, transform=None):
+        self.transform = transform
         if path is None:
             self.path = os.path.join('data', 'Imagenet64')
         else:
@@ -44,6 +45,8 @@ class ImagenetDataset(BaseDataset):
             
             assert np.abs(np.min(self.data) - 0.0) < 1e-1
             assert np.abs(np.max(self.data) - 1.0) < 1e-1
+        else:
+            self.data = self.data.astype(np.uint8)
 
         print(f'Imagenet {mode} dataset size {len(self.labels)}')
 

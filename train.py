@@ -7,7 +7,13 @@ import torch
 from torch import optim
 from torch import nn
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter 
+from torch.utils.tensorboard import SummaryWriter
+from torchvision import transforms as T
+
+import lightly
+from lightly import loss as Loss
+from lightly import transforms
+from lightly.models.modules import heads
 
 from utils.class_loader import *
 from utils.utils import f1_score
@@ -186,3 +192,105 @@ def true_model_test(args):
     test_f1 = f1_score(label_list.cpu(), pred_list.cpu(), num_classes)
     print('Test Acc: {:.6}\t Test F1: {:.6}'.format(test_acc, test_f1))
     return test_acc
+
+
+def ssl(args):
+    # Create a PyTorch module for the SimCLR model.
+    class SimCLR(torch.nn.Module):
+        def __init__(self, backbone):
+            super().__init__()
+            self.projection_head = heads.SimCLRProjectionHead(
+                input_dim=backbone.fc.in_features,
+                hidden_dim=512,
+                output_dim=128,
+            )
+            # Ignore the classification head as we only want the features.
+            backbone.fc = torch.nn.Identity()
+            self.backbone = backbone
+
+        def forward(self, x):
+            features = self.backbone(x).flatten(start_dim=1)
+            z = self.projection_head(features)
+            return z
+        
+    
+    # Prepare transform that creates multiple random views for every image.
+    if 'minst' in args.true_dataset:
+        img_size = 28
+    elif 'imagenet' in args.true_dataset:
+        img_size = 64
+    elif 'cifar' in args.true_dataset:
+        img_size = 32
+    else:
+        img_size = 32
+    transform =T.Compose([T.ToPILImage(),
+                          transforms.SimCLRTransform(input_size=img_size, cj_prob=0.5, normalize=None)
+                        ])
+    
+    # copy dataset
+    noise_dataset = load_dataset(args.noise_dataset, markable=False)
+    if args.noise_dataset == 'mnist_dist':
+        train_noise_dataset = noise_dataset(mode='train', normalize_channels=True, num_fig=args.num_fig, transform=transform, normalize=False)
+    elif 'mnist' in args.true_dataset:
+        train_noise_dataset = noise_dataset(mode='train', normalize_channels=True, transform=transform, normalize=False)
+    else:
+        train_noise_dataset = noise_dataset(mode='train', transform=transform, normalize=False)
+    
+    train_noise_dataloader = DataLoader(train_noise_dataset, batch_size=args.batch_size, shuffle=True)
+
+    if args.noise_dataset not in ['agnews', 'imdb']:
+        sample_shape = train_noise_dataset.get_sample_shape()
+        width, height, channels = sample_shape
+        args.resize = (width, height)
+        
+    num_classes = train_noise_dataset.get_num_classes()
+
+    # copy model
+    copy_model_type = load_model(args.copy_model)
+    if args.copy_model.startswith('cnn'):
+        if args.mea_dropout is not None:
+            copy_model = copy_model_type(in_channels=channels, num_classes=num_classes, dataset_name=args.true_dataset, fc_layers=[], drop_prob=args.mea_dropout).to(args.device)
+        elif args.true_dataset == 'cifar':
+            copy_model = copy_model_type(in_channels=channels, num_classes=num_classes, dataset_name=args.true_dataset, fc_layers=[], drop_prob=0.2).to(args.device)
+        else:
+            copy_model = copy_model_type(in_channels=channels, num_classes=num_classes, dataset_name=args.true_dataset, fc_layers=[]).to(args.device)
+    elif args.copy_model.startswith('resnet'):
+        copy_model = copy_model_type()
+
+    # Build the SimCLR model.
+    model = SimCLR(copy_model).to(args.device)
+
+    # Lightly exposes building blocks such as loss functions.
+    criterion = Loss.NTXentLoss(temperature=0.5)
+
+    # Get a PyTorch optimizer.
+    # optimizer = torch.optim.SGD(model.parameters(), lr=0.1, weight_decay=1e-6)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1, weight_decay=1e-6)
+
+    
+    save_dir = os.path.join(args.path_prefix, 'saved', 
+                            f'sm_{args.source_model}', 
+                            f'td_{args.true_dataset}', 
+                            f't_drop_{args.train_dropout}',
+                            f't_l2_{args.train_l2}','ssl_pretrain')
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Train the model.
+    min_loss = np.inf
+    for epoch in range(args.num_epoch):
+        print(f'Epoch {epoch}')
+        for (trX0, trX1), trY in tqdm(train_noise_dataloader):
+            trX0 = trX0.permute(0,2,3,1).to(args.device)
+            trX1 = trX1.permute(0,2,3,1).to(args.device)
+            z0 = model(trX0)
+            z1 = model(trX1)
+            loss = criterion(z0, z1)
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+        print(f"loss: {loss.item():.5f}")
+        
+        if loss.item() < min_loss:
+            torch.save(model.backbone.state_dict(), os.path.join(save_dir, 'trained_model.pth'))
+            min_loss = loss.item()

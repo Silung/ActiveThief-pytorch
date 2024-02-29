@@ -58,6 +58,7 @@ def main():
     parser.add_argument('--path_prefix', type=str, default='')
     parser.add_argument('--num_fig', type=int, default=10)
     parser.add_argument('--optuna_search', action='store_true')
+    parser.add_argument('--ssl', action='store_true')
     
 
     args = parser.parse_args()
@@ -103,6 +104,9 @@ def main():
         
     if args.optuna_search:
         optuna_search(args)
+    
+    if args.ssl:
+        ssl(args)
 
 
 main()
