@@ -1,4 +1,4 @@
-import tensorflow as tf
+# import tensorflow as tf
 import copy
 
 def deepfool(model, noise=False, eta=0.01, epochs=3, batch=True,

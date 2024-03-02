@@ -7,8 +7,9 @@ from os.path import expanduser, join
 from dataset.markable_dataset import MarkableDataset
 
 class ImagenetDataset(BaseDataset):
-    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None, transform=None):
+    def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None, transform=None, num_train_batch=1):
         self.transform = transform
+        self.num_train_batch = num_train_batch
         if path is None:
             self.path = os.path.join('data', 'Imagenet64')
         else:
@@ -65,7 +66,7 @@ class ImagenetDataset(BaseDataset):
         #     data_files = [os.path.join(self.path, 'val_data.json')]
             
         if mode == 'train':
-            data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(1, 2)]
+            data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(1, self.num_train_batch+1)]
         else:
             assert mode == 'val', 'Mode not supported.'
             data_files = [os.path.join(self.path, 'val_data.json')]
@@ -76,8 +77,8 @@ class ImagenetDataset(BaseDataset):
             with open(data_file, 'rb') as data_file_handle:
                 d = json.load(data_file_handle)
         
-            # x = np.array(d['data'], dtype=np.uint8)
-            x = np.array(d['data'], dtype=float)
+            x = np.array(d['data'], dtype=np.uint8)
+            # x = np.array(d['data'], dtype=float)
             y = np.array(d['labels'])
 
             # Labels are indexed from 1, shift it so that indexes start at 0

@@ -39,6 +39,7 @@ def main():
     parser.add_argument('--train_l2', type=float, default=0.001)
     parser.add_argument('--mea_dropout', type=float, default=0.5)
     parser.add_argument('--mea_l2', type=float, default=0.001)
+    parser.add_argument('--num_train_batch', type=int, default=1)
 
     parser.add_argument('--iterative', action='store_true')
     parser.add_argument('--initial_size', type=int, default=1000)
@@ -51,7 +52,7 @@ def main():
     parser.add_argument('--true_model_test_on_noise_dataset', action='store_true')
 
     parser.add_argument('--sampling_method', type=str, choices=['random', 'uncertainty', 'kcenter', 'deepfool', 'certainty'], default='random')
-    parser.add_argument('--optimizer', type=str, choices=['adam', 'sgd'], default='adam')
+    parser.add_argument('--optimizer', type=str, choices=['adam', 'sgd', 'adagrad'], default='adam')
     parser.add_argument('--api_retval', choices=['onehot', 'softmax'], type=str, default='onehot')
     parser.add_argument('--pretrain', type=str, default=None)
     

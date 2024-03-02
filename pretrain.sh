@@ -52,11 +52,14 @@ python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet
 # 0.7148 0.7934 0.8071 0.8177 seed=0 softmax
 # 0.6559 0.7046 Best hyperparameters: {'lr': 0.000813134125425737, 'batch_size': 256, 'patience': 31, 'mea_dropout': 0.36046234275461114, 'mea_l2': 0.0001178318360561035}
 
+
 python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --copy_model resnet
 python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --copy_model resnet_pretrained
 # 10k 20k 30k 40k
 # 0.5744 0.7455 0.7409 0.7335 seed=0 pretrain 85.91min 更快
 # 0.3817 0.3533 0.3982 0.4018 seed=0 185.2min
+# 0.5151 0.5706 0.5849 0.6275 SSL pretrain resnet imagenet_train_batch=1
+# 0.5216 0.5531 0.5915 0.6342 SSL pretrain resnet imagenet_train_batch=2
 
 
 python main.py --copy_source_model --true_dataset mnist --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0
@@ -127,3 +130,7 @@ python main.py --copy_source_model --true_dataset gtsrb --noise_dataset imagenet
 python main.py --copy_source_model --true_dataset mnist --noise_dataset imagenet --num_iter 20 -k 1000 --initial_size 1000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 3 --pretrain saved/cnn_3_2/imagenet/true/trained_model.pth
 python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet --num_iter 20 -k 1000 --initial_size 1000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --pretrain saved/cnn_3_2/imagenet/true/trained_model.pth
 python main.py --copy_source_model --true_dataset gtsrb --noise_dataset imagenet --num_iter 20 -k 1000 --initial_size 1000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 3 --pretrain saved/cnn_3_2/imagenet/true/trained_model.pth
+
+
+# SSL pretrain resnet对比直接训练是有用的，但效果不如 supervised learning
+# SSL pretrain cnn32 效果糟糕

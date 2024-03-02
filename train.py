@@ -14,6 +14,7 @@ import lightly
 from lightly import loss as Loss
 from lightly import transforms
 from lightly.models.modules import heads
+import lightly.data as data
 
 from utils.class_loader import *
 from utils.utils import f1_score
@@ -68,6 +69,8 @@ def train(args):
                 {'params': model.fc.parameters()},
                 {'params': model.conv_blocks.parameters(), 'weight_decay': args.train_l2}
             ], lr=args.lr, weight_decay=0)
+    elif args.optimizer == 'sgd':
+        optimizer  = optim.SGD(model.parameters(), lr=args.lr)
     else:
         raise Exception('Optimizer not be specified!')
 
@@ -199,13 +202,19 @@ def ssl(args):
     class SimCLR(torch.nn.Module):
         def __init__(self, backbone):
             super().__init__()
+
+            if hasattr(backbone, 'model'):
+                model = backbone.model
+            else:
+                model = backbone
+                
             self.projection_head = heads.SimCLRProjectionHead(
-                input_dim=backbone.fc.in_features,
+                input_dim=model.fc.in_features,
                 hidden_dim=512,
                 output_dim=128,
             )
             # Ignore the classification head as we only want the features.
-            backbone.fc = torch.nn.Identity()
+            model.fc = torch.nn.Identity()
             self.backbone = backbone
 
         def forward(self, x):
@@ -214,7 +223,6 @@ def ssl(args):
             return z
         
     
-    # Prepare transform that creates multiple random views for every image.
     if 'minst' in args.true_dataset:
         img_size = 28
     elif 'imagenet' in args.true_dataset:
@@ -223,20 +231,17 @@ def ssl(args):
         img_size = 32
     else:
         img_size = 32
-    transform =T.Compose([T.ToPILImage(),
-                          transforms.SimCLRTransform(input_size=img_size, cj_prob=0.5, normalize=None)
-                        ])
     
     # copy dataset
     noise_dataset = load_dataset(args.noise_dataset, markable=False)
     if args.noise_dataset == 'mnist_dist':
-        train_noise_dataset = noise_dataset(mode='train', normalize_channels=True, num_fig=args.num_fig, transform=transform, normalize=False)
-    elif 'mnist' in args.true_dataset:
-        train_noise_dataset = noise_dataset(mode='train', normalize_channels=True, transform=transform, normalize=False)
+        train_noise_dataset = noise_dataset(mode='train', normalize_channels=True, num_fig=args.num_fig, normalize=False)
+    elif 'mnist' in args.noise_dataset:
+        train_noise_dataset = noise_dataset(mode='train', normalize_channels=True, normalize=False)
+    elif 'imagenet' in args.noise_dataset:
+        train_noise_dataset = noise_dataset(mode='train', normalize=False, num_train_batch=args.num_train_batch)
     else:
-        train_noise_dataset = noise_dataset(mode='train', transform=transform, normalize=False)
-    
-    train_noise_dataloader = DataLoader(train_noise_dataset, batch_size=args.batch_size, shuffle=True)
+        train_noise_dataset = noise_dataset(mode='train', normalize=False)
 
     if args.noise_dataset not in ['agnews', 'imdb']:
         sample_shape = train_noise_dataset.get_sample_shape()
@@ -244,6 +249,13 @@ def ssl(args):
         args.resize = (width, height)
         
     num_classes = train_noise_dataset.get_num_classes()
+
+    transform =T.Compose([T.ToPILImage(),
+                          transforms.SimCLRTransform(input_size=img_size, cj_prob=0.5, gaussian_blur=0)
+                        ])
+    
+    train_noise_dataset = data.LightlyDataset.from_torch_dataset(train_noise_dataset, transform=transform)
+    train_noise_dataloader = DataLoader(train_noise_dataset, batch_size=args.batch_size, shuffle=True)
 
     # copy model
     copy_model_type = load_model(args.copy_model)
@@ -280,7 +292,7 @@ def ssl(args):
     min_loss = np.inf
     for epoch in range(args.num_epoch):
         print(f'Epoch {epoch}')
-        for (trX0, trX1), trY in tqdm(train_noise_dataloader):
+        for (trX0, trX1), trY, _ in tqdm(train_noise_dataloader):
             trX0 = trX0.permute(0,2,3,1).to(args.device)
             trX1 = trX1.permute(0,2,3,1).to(args.device)
             z0 = model(trX0)
@@ -292,5 +304,5 @@ def ssl(args):
         print(f"loss: {loss.item():.5f}")
         
         if loss.item() < min_loss:
-            torch.save(model.backbone.state_dict(), os.path.join(save_dir, 'trained_model.pth'))
+            torch.save(model.backbone.state_dict(), os.path.join(save_dir, f'{args.copy_model}.pth'))
             min_loss = loss.item()

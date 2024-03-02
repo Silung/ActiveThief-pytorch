@@ -11,7 +11,7 @@ class ResNet_Pretrained(nn.Module):
         self.model.fc = nn.Linear(in_features=512, out_features=10, bias=True)
     
     def forward(self, x):
-        # Accepts PIL.Image, batched (B, C, H, W)
+        # Input B H W C
         x = x.float().permute(0,3,1,2)
         x = self.preprocess(x)
         x = self.model(x)
@@ -26,7 +26,7 @@ class ResNet(nn.Module):
         self.model.fc = nn.Linear(in_features=512, out_features=10, bias=True)
     
     def forward(self, x):
-        # Accepts PIL.Image, batched (B, C, H, W)
+        # Input B H W C
         x = x.float().permute(0,3,1,2)
         x = self.preprocess(x)
         
