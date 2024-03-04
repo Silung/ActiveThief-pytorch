@@ -49,6 +49,7 @@ def main():
 
     parser.add_argument('--train_source_model', action='store_true')
     parser.add_argument('--copy_source_model', action='store_true')
+    parser.add_argument('--true_model_test', action='store_true')
     parser.add_argument('--true_model_test_on_noise_dataset', action='store_true')
 
     parser.add_argument('--sampling_method', type=str, choices=['random', 'uncertainty', 'kcenter', 'deepfool', 'certainty'], default='random')
@@ -84,7 +85,8 @@ def main():
         assert args.k is not None
         noise_dataset = "{}-{}-{}+{}+{}-{}" .format(noise_dataset, args.sampling_method, args.initial_seed, args.val_size , args.num_iter * args.k, args.optimizer)
 
-    # true_model_test(args)
+    if args.true_model_test:
+        true_model_test(args)
 
     if args.train_source_model:
         # Train our ground truth model.

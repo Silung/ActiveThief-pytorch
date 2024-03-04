@@ -379,7 +379,7 @@ def eval(args, model, val_dataloader, print_result=True):
         num_class = 1000
     val_f1 = f1_score(label_list.cpu(), pred_list.cpu(), num_class)
     if print_result:
-        print('Loss: {:.6}\t Acc: {:.6}\t F1: {:.6}\t'.format(val_loss, val_acc, val_f1))
+        print('Loss: {:.6}\t Agr: {:.6}\t F1: {:.6}\t'.format(val_loss, val_acc, val_f1))
         cnt = Counter(label_list.cpu().numpy())
         print('label_list counter:')
         print(cnt)

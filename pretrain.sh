@@ -51,7 +51,11 @@ python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet
 # 0.6163(不涉及al不起作用) 0.7064 0.7244 0.7527 seed=0 al=k-center
 # 0.7148 0.7934 0.8071 0.8177 seed=0 softmax
 # 0.6559 0.7046 Best hyperparameters: {'lr': 0.000813134125425737, 'batch_size': 256, 'patience': 31, 'mea_dropout': 0.36046234275461114, 'mea_l2': 0.0001178318360561035}
-
+# Best hyperparameters: {'lr': 0.0008032934139387716, 'batch_size': 256, 'patience': 155, 'mea_dropout': 0.050587298303252023, 'mea_l2': 5.572497591847384e-05}
+# 0.7805 0.7959 0.8181 0.8198 true model optimized by sgd sick model acc=0.6
+# 0.7645 0.7645 0.7764 0.7872 true model optimized by sgd strong model acc=0.8081
+# 0.7473 0.7958 0.8009 0.8081 true model optimized by sgd strong model acc=0.8081 pretraine on imagenet
+# 0.2551 0.2481 0.3282 0.3725 true model optimized by sgd strong model acc=0.8081 SSL
 
 python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --copy_model resnet
 python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --copy_model resnet_pretrained
@@ -60,6 +64,8 @@ python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet
 # 0.3817 0.3533 0.3982 0.4018 seed=0 185.2min
 # 0.5151 0.5706 0.5849 0.6275 SSL pretrain resnet imagenet_train_batch=1
 # 0.5216 0.5531 0.5915 0.6342 SSL pretrain resnet imagenet_train_batch=2
+# 0.5547 0.5885 0.5816 0.6416 SSL pretrain resnet imagenet_train_batch=3
+# 0.3758 0.4106 0.4025 0.4315 true model optimized by sgd strong model acc=0.8081
 
 
 python main.py --copy_source_model --true_dataset mnist --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0

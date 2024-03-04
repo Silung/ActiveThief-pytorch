@@ -191,7 +191,7 @@ def true_model_test(args):
         # test_dataloader.set_description('Testing')
         # test_dataloader.set_postfix({'ACC': '{0:1.4f}'.format(acc)})
     
-    test_acc = pred_list.eq(label_list).cpu().numpy().mean()
+    test_acc = pred_list.cpu().eq(label_list.cpu()).numpy().mean()
     test_f1 = f1_score(label_list.cpu(), pred_list.cpu(), num_classes)
     print('Test Acc: {:.6}\t Test F1: {:.6}'.format(test_acc, test_f1))
     return test_acc

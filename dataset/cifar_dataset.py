@@ -1,6 +1,6 @@
 import numpy as np
 from dataset.base_dataset import BaseDataset
-from keras.datasets import cifar10
+from torchvision import datasets
 from dataset.markable_dataset import MarkableDataset
 
 class CifarDataset(BaseDataset):
@@ -21,22 +21,24 @@ class CifarDataset(BaseDataset):
         return False
 
     def load_data(self, mode, val_frac):
-        (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+        # (x_train, y_train), (x_test, y_test) = cifar10.load_data()
         
         # Load the required dataset
         if mode == 'train' or mode == 'val':
-            self.data = x_train
-            self.labels = y_train
+            dataset = datasets.CIFAR10(root='./data/cifar10', train=True, download=True)
+            self.data = dataset.data
+            self.labels = dataset.targets
         else:
             assert mode == 'test'
-            self.data = x_test
-            self.labels = y_test
+            dataset = datasets.CIFAR10(root='./data/cifar10', train=False, download=True)
+            self.data = dataset.data
+            self.labels = dataset.targets
 
         # Perform splitting
         if val_frac is not None:
             self.partition_validation_set(mode, val_frac)
             
-        self.labels = np.squeeze(self.labels)
+        # self.labels = np.squeeze(self.labels)
 
     def get_num_classes(self):
         return 10
