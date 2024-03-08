@@ -181,7 +181,7 @@ def mea(args):
             else:
                 copy_model = copy_model_type(in_channels=channels, num_classes=num_classes, dataset_name=args.true_dataset, fc_layers=[]).to(args.device)
         elif args.copy_model.startswith('resnet'):
-            copy_model = copy_model_type()
+            copy_model = copy_model_type(num_classes=num_classes)
 
         if args.pretrain is not None:
             parms = torch.load(args.pretrain)

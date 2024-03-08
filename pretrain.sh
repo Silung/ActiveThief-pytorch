@@ -54,8 +54,9 @@ python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet
 # Best hyperparameters: {'lr': 0.0008032934139387716, 'batch_size': 256, 'patience': 155, 'mea_dropout': 0.050587298303252023, 'mea_l2': 5.572497591847384e-05}
 # 0.7805 0.7959 0.8181 0.8198 true model optimized by sgd sick model acc=0.6
 # 0.7645 0.7645 0.7764 0.7872 true model optimized by sgd strong model acc=0.8081
-# 0.7473 0.7958 0.8009 0.8081 true model optimized by sgd strong model acc=0.8081 pretraine on imagenet
+# 0.7473 0.7958 0.8009 0.8081 true model optimized by sgd strong model acc=0.8081 pretrained on imagenet
 # 0.2551 0.2481 0.3282 0.3725 true model optimized by sgd strong model acc=0.8081 SSL
+# 0.3128 0.2634 0.3106 0.3854 SSL
 
 python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --copy_model resnet
 python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --copy_model resnet_pretrained
@@ -67,6 +68,16 @@ python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet
 # 0.5547 0.5885 0.5816 0.6416 SSL pretrain resnet imagenet_train_batch=3
 # 0.3758 0.4106 0.4025 0.4315 true model optimized by sgd strong model acc=0.8081
 
+python main.py --copy_source_model --true_dataset mnist --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --copy_model resnet
+python main.py --copy_source_model --true_dataset mnist --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --copy_model resnet_pretrained
+# 10k 20k 30k 40k
+# waiting
+
+python main.py --copy_source_model --true_dataset gtsrb --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --copy_model resnet
+python main.py --copy_source_model --true_dataset gtsrb --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --copy_model resnet_pretrained
+# 10k 20k 30k 40k
+# 0.494616 0.607363 0.692082 0.739113 pretrained resnet
+# 0.292003 0.442993 0.531275 0.588282 resnet
 
 python main.py --copy_source_model --true_dataset mnist --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0
 # 10k 20k 30k 40k
