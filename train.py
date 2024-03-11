@@ -33,8 +33,8 @@ def train(args):
 
     dataset = load_dataset(args.true_dataset) 
 
-    train_dataset = dataset(mode='train')
-    val_dataset = dataset(mode='val')
+    train_dataset = dataset(mode='train', normalize_channels=args.normalize_channels)
+    val_dataset = dataset(mode='val', normalize_channels=args.normalize_channels)
 
     num_classes = train_dataset.get_num_classes()
     source_model_type = load_model(args.source_model)
@@ -118,7 +118,10 @@ def train(args):
         acc = eval(args, model, val_dataloader)
         writer1.add_scalar('val/acc', acc, epoch)
         if acc > best_acc:
-            torch.save(model.state_dict(), os.path.join(save_dir, 'trained_model.pth'))
+            if args.normalize_channels:
+                torch.save(model.state_dict(), os.path.join(save_dir, 'normalize_channels.pth'))
+            else:
+                torch.save(model.state_dict(), os.path.join(save_dir, 'trained_model.pth'))
             best_acc = acc
     return model
 
@@ -149,7 +152,11 @@ def true_model_test(args):
                                 f'sm_{args.source_model}', 
                                 f'td_{args.true_dataset}', 
                                 f't_drop_{args.train_dropout}',
-                                f't_l2_{args.train_l2}','true','trained_model.pth')
+                                f't_l2_{args.train_l2}','true')
+    if args.normalize_channels:
+        torch.save(model.state_dict(), os.path.join(save_dir, 'normalize_channels.pth'))
+    else:
+        torch.save(model.state_dict(), os.path.join(save_dir, 'trained_model.pth'))
 
     dataset = load_dataset(args.true_dataset) 
     test_dataset = dataset(mode='test')
@@ -304,5 +311,8 @@ def ssl(args):
         print(f"loss: {loss.item():.5f}")
         
         if loss.item() < min_loss:
-            torch.save(model.backbone.state_dict(), os.path.join(save_dir, f'{args.copy_model}.pth'))
+            if args.normalize_channels:
+                torch.save(model.backbone.state_dict(), os.path.join(save_dir, f'{args.copy_model}_normalize_channels.pth'))
+            else:
+                torch.save(model.backbone.state_dict(), os.path.join(save_dir, f'{args.copy_model}.pth'))
             min_loss = loss.item()

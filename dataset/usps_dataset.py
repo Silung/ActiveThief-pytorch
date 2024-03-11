@@ -44,7 +44,7 @@ class UspsDataset(BaseDataset):
                 self.labels = train.get('target')[:]
 
         # Perform splitting
-        if self.mode != 'test':
+        if mode != 'test':
             self.partition_validation_set(mode, val_frac)
         
         self.data = self.data.reshape(-1,16,16,1)

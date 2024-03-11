@@ -189,8 +189,8 @@ def mea(args):
                 del parms['fc.weight']
             if 'fc.bias' in parms:
                 del parms['fc.bias']
-            if args.true_dataset == 'mnist':
-                del parms['conv_blocks.0.conv_blocks.0.weight']
+            # if args.true_dataset == 'mnist':
+            #     del parms['conv_blocks.0.conv_blocks.0.weight']
             copy_model.load_state_dict(parms, strict=False)
         copy_model.to(args.device)
         # optimizer  = optim.Adam(copy_model.parameters(), lr=args.lr, weight_decay=args.mea_l2)

@@ -48,6 +48,8 @@ class CNN(nn.Module):
 	        img_size = 64
         elif 'gtsrb' in dataset_name:
 	        img_size = 32
+        elif 'usps' in dataset_name:
+	        img_size = 16
         else:
             raise NotImplementedError
         

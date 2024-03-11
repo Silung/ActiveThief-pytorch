@@ -61,6 +61,7 @@ def main():
     parser.add_argument('--num_fig', type=int, default=10)
     parser.add_argument('--optuna_search', action='store_true')
     parser.add_argument('--ssl', action='store_true')
+    parser.add_argument('--normalize_channels', action='store_true')
     
 
     args = parser.parse_args()
