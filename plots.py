@@ -46,6 +46,7 @@ plt.ylabel('Agr',fontsize=11)
 plt.legend(frameon=False)
 plt.grid(ls='--',alpha=0.8)
 plt.title(f'MEA agr on {dataset_name}')
+plt.ylim(0.25,1)
 
 plt.xticks(np.arange(0, 20001, 2000))
 # plt.tick_params(axis='x',length=0)

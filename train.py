@@ -123,6 +123,8 @@ def train(args):
             else:
                 torch.save(model.state_dict(), os.path.join(save_dir, 'trained_model.pth'))
             best_acc = acc
+    
+    writer1.close()
     return model
 
 def eval(args, model, val_dataloader):

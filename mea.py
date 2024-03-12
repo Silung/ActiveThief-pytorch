@@ -326,6 +326,7 @@ def mea(args):
         lebel_dataset(args, true_model, val_noise_dataloader)
         used_budget += args.k
 
+    writer2.close()
     print("---Copynet trainning completed---")
     return weighted_val_score
 
