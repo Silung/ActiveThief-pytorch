@@ -8,48 +8,24 @@ from dataset.markable_dataset import MarkableDataset
 
 class ImagenetDataset(BaseDataset):
     def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None, transform=None, num_train_batch=1):
-        self.transform = transform
+        if mode == 'val':
+            assert val_frac is not None
+        
         self.num_train_batch = num_train_batch
+        
         if path is None:
             self.path = os.path.join('data', 'Imagenet64')
         else:
             self.path = path
         
-        self.random_state = random.getstate()
-        
-        print("Loading {} data".format(mode))
-        # Initializes self.data and self.labels
-        self.load_data(mode, val_frac)
-
-        # Resize dataset if it is not already of the specified size
-        if resize is not None and not self.data.shape[1:3] == resize:
-            print('Resizing...')
-            data = np.empty((self.data.shape[0], resize[0], resize[1], self.data.shape[3]))
-            for i, image in enumerate(self.data):
-                if self.data.shape[3] == 1:
-                    data[i,:,:,0] = cv2.resize(image.squeeze(), resize)
-                else:
-                    data[i,:,:,:] = cv2.resize(image, resize)
-
-            self.data = data
-
-        # Normalize color channels if requested
-        if normalize_channels:
-            self.data  = np.mean(self.data, axis=-1)
-            self.data  = np.expand_dims(self.data, -1)
-
-            assert len(self.data.shape) == 4
-        
-        if normalize:
-            # self.data = (self.data - float(np.min(self.data)))/(float(np.max(self.data)) - float(np.min(self.data)))
-            self.data = (self.data - np.min(self.data))/(np.max(self.data) - np.min(self.data))
-            
-            assert np.abs(np.min(self.data) - 0.0) < 1e-1
-            assert np.abs(np.max(self.data) - 1.0) < 1e-1
-        else:
-            self.data = self.data.astype(np.uint8)
-
-        print(f'Imagenet {mode} dataset size {len(self.labels)}')
+        super(ImagenetDataset, self).__init__(
+            normalize=normalize,
+            mode=mode,
+            val_frac=val_frac,
+            normalize_channels=normalize_channels,
+            resize=resize,
+            transform=transform
+        )
 
     def load_data(self, mode, val_frac):
         # Our training and validation splits are of size 100K and 20K respectively. 
