@@ -83,6 +83,13 @@ def load_dataset(dataset, markable=False):
         else:
             from dataset.gtsrb_dataset import GtsrbDataset
             ds = GtsrbDataset
+    elif dataset == 'imagenet_tiny':
+        if markable:
+            from dataset.imagenet_tiny_dataset import ImagenetTinyMarkableDataset
+            ds = ImagenetTinyMarkableDataset
+        else:
+            from dataset.imagenet_tiny_dataset import ImagenetTinyDataset
+            ds = ImagenetTinyDataset
     elif dataset == 'agnews':
         if markable:
             from dataset.agnews_dataset import AgnewsMarkableDataset
