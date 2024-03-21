@@ -9,3 +9,4 @@ report
 temp*
 *.sh
 pics
+experiment/*.txt
