@@ -44,7 +44,7 @@ class ImagenetDataset(BaseDataset):
         if mode == 'train':
             data_files = [os.path.join(self.path, 'train_data_batch_%d.json' % idx) for idx in range(1, self.num_train_batch+1)]
         else:
-            assert mode == 'val', 'Mode not supported.'
+            # assert mode == 'val', 'Mode not supported.'
             data_files = [os.path.join(self.path, 'val_data.json')]
 
         for data_file in data_files:
@@ -86,5 +86,5 @@ class ImagenetDataset(BaseDataset):
     
 class ImagenetMarkableDataset(MarkableDataset, ImagenetDataset):
     def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, path=None, resize=None):
-        ImagenetDataset.__init__(self, normalize, mode, val_frac, normalize_channels, path, resize)
+        ImagenetDataset.__init__(self, normalize=normalize, mode=mode, val_frac=val_frac, normalize_channels=normalize_channels, path=path, resize=resize)
         MarkableDataset.__init__(self)

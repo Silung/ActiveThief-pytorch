@@ -88,5 +88,5 @@ class ImagenetTinyDataset(BaseDataset):
 
 class ImagenetTinyMarkableDataset(MarkableDataset, ImagenetTinyDataset):
     def __init__(self, normalize=True, mode='train', val_frac=0.2, normalize_channels=False, resize=None):
-        ImagenetTinyDataset.__init__(self, normalize, mode, val_frac, normalize_channels, resize)
+        ImagenetTinyDataset.__init__(self, normalize=normalize, mode=mode, val_frac=val_frac, normalize_channels=normalize_channels, path=path, resize=resize)
         MarkableDataset.__init__(self)

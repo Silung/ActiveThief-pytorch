@@ -45,12 +45,14 @@ class MnistDataset(BaseDataset):
         with open(fname_img, 'rb') as fimg:
             print(fname_img)
             magic, num, rows, cols = struct.unpack(">IIII", fimg.read(16))
-            self.data = np.fromfile(fimg, dtype=np.uint8).reshape(len(self.labels), rows, cols, 1)
+            self.data = np.fromfile(fimg, dtype=np.uint8).reshape(len(self.labels), rows, cols)
 
         # Perform splitting
         if mode != 'test':
             self.partition_validation_set(mode, val_frac)
             
+        self.data = np.stack((self.data, self.data, self.data), axis=-1)
+        
         self.labels = np.squeeze(self.labels)
 
     def get_num_classes(self):
