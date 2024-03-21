@@ -78,11 +78,11 @@ def load_noise_data(args):
     if not hasattr(args, 'resize'):
         args.resize = None
     if args.noise_dataset == 'mnist_dist':
-        train_noise_dataset = noise_dataset(mode='train', resize=args.resize, normalize_channels=True, num_fig=args.num_fig)
-        val_noise_dataset = noise_dataset(mode='val', resize=args.resize, normalize_channels=True, num_fig=args.num_fig)
+        train_noise_dataset = noise_dataset(mode='train', resize=args.resize, num_fig=args.num_fig)
+        val_noise_dataset = noise_dataset(mode='val', resize=args.resize, num_fig=args.num_fig)
     elif 'mnist' in args.true_dataset:
-        train_noise_dataset = noise_dataset(mode='train', resize=args.resize, normalize_channels=True)
-        val_noise_dataset = noise_dataset(mode='val', resize=args.resize, normalize_channels=True)
+        train_noise_dataset = noise_dataset(mode='train', resize=args.resize)
+        val_noise_dataset = noise_dataset(mode='val', resize=args.resize,)
     else:
         train_noise_dataset = noise_dataset(mode='train', resize=args.resize)
         val_noise_dataset = noise_dataset(mode='val', resize=args.resize)
@@ -114,12 +114,15 @@ def mea(args):
         print('Train true model first!')
     source_model_type = load_model(args.source_model)
     if args.true_dataset not in ['agnews', 'imdb']:
-        if args.mea_dropout is not None:
-            true_model = source_model_type(num_classes, args.true_dataset, channels, drop_prob=args.mea_dropout)
-        elif args.true_dataset == 'cifar':
-            true_model = source_model_type(num_classes, args.true_dataset, channels, drop_prob=0.2)
+        if args.source_model.startswith('resnet'):
+            true_model = source_model_type(num_classes, args.source_model[6:])
         else:
-            true_model = source_model_type(num_classes, args.true_dataset, channels)
+            if args.mea_dropout is not None:
+                true_model = source_model_type(num_classes, args.true_dataset, channels, drop_prob=args.mea_dropout)
+            elif args.true_dataset == 'cifar':
+                true_model = source_model_type(num_classes, args.true_dataset, channels, drop_prob=0.2)
+            else:
+                true_model = source_model_type(num_classes, args.true_dataset, channels)
     else:
         vocab_size = train_noise_dataset.get_vocab_size()
         true_model = source_model_type(num_classes, args.true_dataset, vocab_size=vocab_size)
@@ -181,7 +184,7 @@ def mea(args):
             else:
                 copy_model = copy_model_type(in_channels=channels, num_classes=num_classes, dataset_name=args.true_dataset, fc_layers=[]).to(args.device)
         elif args.copy_model.startswith('resnet'):
-            copy_model = copy_model_type(num_classes=num_classes)
+            copy_model = source_model_type(num_classes, args.source_model[6:])
 
         if args.pretrain is not None:
             parms = torch.load(args.pretrain)
@@ -189,6 +192,10 @@ def mea(args):
                 del parms['fc.weight']
             if 'fc.bias' in parms:
                 del parms['fc.bias']
+            if 'model.fc.weight' in parms:
+                del parms['model.fc.weight']
+            if 'model.fc.bias' in parms:
+                del parms['model.fc.bias']
             # if args.true_dataset == 'mnist':
             #     del parms['conv_blocks.0.conv_blocks.0.weight']
             copy_model.load_state_dict(parms, strict=False)
@@ -250,7 +257,7 @@ def mea(args):
             # "We set aside 20% of the query budget for validation"
             val_noise_loss, val_noise_acc, val_noise_f1 = eval(args, copy_model, val_noise_dataloader, print_result=False)
             # print(val_noise_acc)
-            early_stopping(val_noise_f1, np.mean(loss_list), copy_model)
+            early_stopping(val_noise_acc, np.mean(loss_list), copy_model)
             # early_stopping(val_noise_loss, copy_model)
             
             # if epoch % 20 == 0:

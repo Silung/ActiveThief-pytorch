@@ -18,6 +18,7 @@ import lightly.data as data
 
 from utils.class_loader import *
 from utils.utils import f1_score
+from collections import Counter
 
 
 def train(args):
@@ -45,12 +46,15 @@ def train(args):
         
         sample_shape = train_dataset.get_sample_shape()
         width, height, channels = sample_shape
-        if args.train_dropout is not None:
-            model = source_model_type(num_classes, args.true_dataset, channels, drop_prob=args.train_dropout)
-        elif args.true_dataset == 'cifar':
-            model = source_model_type(num_classes, args.true_dataset, channels, drop_prob=0.2)
+        if args.source_model.startswith('resnet'):
+            model = source_model_type(num_classes, args.source_model[6:])
         else:
-            model = source_model_type(num_classes, args.true_dataset, channels)
+            if args.train_dropout is not None:
+                model = source_model_type(num_classes, args.true_dataset, channels, drop_prob=args.train_dropout)
+            elif args.true_dataset == 'cifar':
+                model = source_model_type(num_classes, args.true_dataset, channels, drop_prob=0.2)
+            else:
+                model = source_model_type(num_classes, args.true_dataset, channels)
     else:
         train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=train_dataset.collate_batch)
         val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=val_dataset.collate_batch)
@@ -65,10 +69,14 @@ def train(args):
         optimizer  = optim.Adagrad(model.parameters(), lr=args.lr, weight_decay=args.train_l2)
     elif args.optimizer == 'adam':
         # optimizer  = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.train_l2)
-        optimizer  = optim.Adam([
-                {'params': model.fc.parameters()},
-                {'params': model.conv_blocks.parameters(), 'weight_decay': args.train_l2}
-            ], lr=args.lr, weight_decay=0)
+        try:
+            optimizer  = optim.Adam([
+                    {'params': model.fc.parameters()},
+                    {'params': model.conv_blocks.parameters(), 'weight_decay': args.train_l2}
+                ], lr=args.lr, weight_decay=0)
+        except:
+            print('Optimize full parms.')
+            optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.train_l2)
     elif args.optimizer == 'sgd':
         optimizer  = optim.SGD(model.parameters(), lr=args.lr)
     else:
@@ -156,9 +164,9 @@ def true_model_test(args):
                                 f't_drop_{args.train_dropout}',
                                 f't_l2_{args.train_l2}','true')
     if args.normalize_channels:
-        torch.save(model.state_dict(), os.path.join(save_dir, 'normalize_channels.pth'))
+        save_dir = os.path.join(save_dir, 'normalize_channels.pth')
     else:
-        torch.save(model.state_dict(), os.path.join(save_dir, 'trained_model.pth'))
+        save_dir = os.path.join(save_dir, 'trained_model.pth')
 
     dataset = load_dataset(args.true_dataset) 
     test_dataset = dataset(mode='test')
@@ -170,13 +178,17 @@ def true_model_test(args):
         sample_shape = test_dataset.get_sample_shape()
         width, height, channels = sample_shape
         test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
-        model = source_model_type(num_classes, args.true_dataset, channels)
+        if args.source_model.startswith('resnet'):
+            model = source_model_type(num_classes, args.source_model[6:])
+        else:
+            model = source_model_type(num_classes, args.true_dataset, channels)
     else:
         test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=test_dataset.collate_batch)
         vocab_size = test_dataset.get_vocab_size()
         model = source_model_type(num_classes, args.true_dataset, vocab_size=vocab_size)
         
-    model.load_state_dict(torch.load(save_dir))
+    if 'pretrained' not in args.source_model:
+        model.load_state_dict(torch.load(save_dir))
     model = model.to(args.device)
     model.eval()
 
@@ -201,6 +213,12 @@ def true_model_test(args):
         # test_dataloader.set_postfix({'ACC': '{0:1.4f}'.format(acc)})
     
     test_acc = pred_list.cpu().eq(label_list.cpu()).numpy().mean()
+    cnt = Counter(label_list.cpu().numpy())
+    print('label_list counter:')
+    print(cnt)
+    cnt = Counter(pred_list.cpu().numpy())
+    print('pred_list counter:')
+    print(cnt)
     test_f1 = f1_score(label_list.cpu(), pred_list.cpu(), num_classes)
     print('Test Acc: {:.6}\t Test F1: {:.6}'.format(test_acc, test_f1))
     return test_acc

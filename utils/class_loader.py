@@ -114,12 +114,12 @@ def load_model(model_class):
     model = None
     
     if model_class.startswith('resnet'):
-        if model_class == 'resnet':
-            from models.resnet import ResNet
-            return ResNet
-        elif model_class == 'resnet_pretrained':
+        if model_class == 'resnet_pretrained':
             from models.resnet import ResNet_Pretrained
             return ResNet_Pretrained
+        else:
+            from models.resnet import ResNet
+            return ResNet
     elif model_class.startswith('cnn_'):
         from models.cnn import CNN
         blocks, convs_in_block = model_class.strip().split('_')[1:]
