@@ -1,0 +1,1 @@
+python main.py --copy_source_model --true_dataset cifar --noise_dataset imagenet --num_iter 4 -k 10000 --initial_size 10000 --lr 0.001 --train_dropout 0.5 --train_l2 0.001 --mea_dropout 0.5 --mea_l2 0.001 --batch_size 150 --patience 20 --seed 0 --optimizer sgd
