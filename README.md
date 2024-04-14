@@ -1,6 +1,6 @@
 # Getting started
 
-TransferThief runs on Python 3 using pytorch. The repo is forked from https://github.com/shukla-aditya-csa/activethief. We reimplement a part of ActiveThief in this repo using Python 3 and pytorch.
+ActiveThief-pytorch runs on Python 3 using pytorch. The repo is forked from https://github.com/shukla-aditya-csa/activethief. We reimplement a part of ActiveThief in this repo using Python 3 and pytorch.
 
 To download the required datasets, first run:
 
