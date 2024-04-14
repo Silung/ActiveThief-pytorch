@@ -42,12 +42,9 @@ For experiments about soft label, run:
 
 # License
 
-TransferThief is available under an MIT License. Parts of the codebase is based on code from other repositories, also under an MIT license.  
+ActiveThief-pytorch is available under an MIT License. Parts of the codebase is based on code from other repositories, also under an MIT license.  
 Please see the LICENSE file, and the inline license included in each code file for more details.
 
-# Reference
-
-**TransferThief: Improved Efficiency in Model Extraction Attacks using Transfer Learning**  
 
 
 
